@@ -20,11 +20,10 @@ The installation script automates the setup of:
   and [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
 - **Custom Cursors**: Bibata, Phinger.
 - **Development Toolchains**:
-    - Languages: Python, Go, Rust, Java, .NET, C/C++, Node.js (via nvm).
+    - Runtimes: Python, Go, Rust, Java, .NET, C/C++, Node.js (via nvm).
     - IDEs: VS Code, JetBrains Toolbox App.
     - Git GUI: GitKraken.
-    - Tools: build-essential, Postman, Docker Desktop (with `pass` configured), Microk8s, Homebrew, Helm, helm-docs,
-      K9s.
+    - Tools: Postman, Docker Desktop (with `pass` configured), Microk8s, Homebrew, Helm, helm-docs, K9s.
 - **Applications**:
     - Productivity: Google Chrome, LibreOffice, Transmission, VLC.
     - Graphics: GIMP.

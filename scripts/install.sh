@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_ROOT="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Add repositories
 sudo add-apt-repository -y ppa:solaar-unifying/stable
@@ -9,16 +9,17 @@ sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
-wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg --import
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list > /dev/null
+sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
+# Update/Upgrade
 sudo apt-get update && sudo apt-get upgrade -y
 
 # Install my fonts
-sudo cp -rv "$DOTFILES_ROOT/.fonts/"* /usr/local/share/fonts/
+sudo cp -rv "$ROOT_DIR/.fonts/"* /usr/local/share/fonts/
 sudo fc-cache -fv
 
 # Install my cursors
@@ -26,12 +27,13 @@ sudo apt-get install bibata-cursor-theme
 sudo apt-get install phinger-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
-sudo apt-get install -y build-essential procps curl file git libfuse2 jq ca-certificates pass gnupg2
+sudo apt-get install -y apt-transport-https ca-certificates gnupg2 pass build-essential git file jq procps curl grpcurl net-tools libfuse2
 # Install and set up Python
 sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl
+sudo apt-get install -y python3-venv
 # Install and set up Go
-sudo apt-get install -y golang-go
+sudo apt-get install -y golang-go 
 export PATH=$PATH:/usr/local/go/bin
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
 # Install and set up Rust
@@ -89,7 +91,7 @@ if [ -n "$BREW_PREFIX" ]; then
   brew install norwoodj/tap/helm-docs
   brew install derailed/k9s/k9s
 fi
-# Install and set up Git GUI
+# Install and set up GitKraken
 sudo snap install gitkraken --classic
 # Install and set up VS Code
 sudo snap install code --classic
@@ -118,3 +120,7 @@ sudo apt-get install -y polychromatic
 sudo apt-get install -y solaar
 sudo apt-get install -y transmission-gtk
 sudo apt-get install -y vlc
+
+# Cleanup
+sudo apt-get autoremove -y
+sudo apt-get autoclean -y
