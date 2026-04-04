@@ -50,6 +50,10 @@ sudo apt-get install -y clang
 sudo apt-get install -y dotnet-sdk-10.0
 # Install and set up Java
 sudo apt-get install -y default-jdk
+# Install and set up PHP
+sudo apt-get install -y php php-cli php-common php-curl php-json php-mbstring php-xml php-zip php-fileinfo
+# Install and set up Ruby
+sudo apt-get install -y ruby-full
 # Install and set up nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 export NVM_DIR="$HOME/.nvm"
