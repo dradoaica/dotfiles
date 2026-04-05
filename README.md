@@ -16,6 +16,7 @@ chmod +x scripts/install.sh
 
 The installation script automates the setup of:
 
+- **Flatpak package manager alongside APT and Snap**
 - **Custom Fonts**: System-wide installation of [Inter](https://rsms.me/inter/)
   and [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
 - **Custom Cursors**: Bibata, Phinger.
@@ -28,7 +29,7 @@ The installation script automates the setup of:
     - Productivity: Google Chrome, LibreOffice, Transmission, VLC.
     - Graphics: GIMP.
     - System Utilities: BleachBit, GNOME Tweaks, GNOME Extensions.
-    - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer).
+    - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
 
 ## License
 

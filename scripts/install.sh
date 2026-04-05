@@ -3,7 +3,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Add repositories
+# Add APT repositories
 sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
@@ -18,13 +18,19 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 # Update/Upgrade
 sudo apt-get update && sudo apt-get upgrade -y
 
+# Install Flatpak package manager alongside APT and Snap
+sudo apt-get install -y flatpak flatpak-builder
+
+# Add Flatpak repositories
+sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
 # Install my fonts
 sudo cp -rv "$ROOT_DIR/.fonts/"* /usr/local/share/fonts/
 sudo fc-cache -fv
 
 # Install my cursors
-sudo apt-get install bibata-cursor-theme
-sudo apt-get install phinger-cursor-theme
+sudo apt-get install -y bibata-cursor-theme
+sudo apt-get install -y phinger-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
 sudo apt-get install -y apt-transport-https ca-certificates gnupg2 pass build-essential git file jq procps curl grpcurl net-tools libfuse2
@@ -124,7 +130,33 @@ sudo apt-get install -y polychromatic
 sudo apt-get install -y solaar
 sudo apt-get install -y transmission-gtk
 sudo apt-get install -y vlc
+sudo flatpak install me.timschneeberger.GalaxyBudsClient
+
+# Set up autostart for the applications
+mkdir -p ~/.config/autostart
+cat <<EOF > ~/.config/autostart/transmission-gtk.desktop
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && transmission-gtk --minimized"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Transmission
+Comment=Start Transmission Minimized
+EOF
+cat <<EOF > ~/.config/autostart/galaxybudsclient.desktop
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && flatpak run me.timschneeberger.GalaxyBudsClient /StartMinimized"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Galaxy Buds Client
+Comment=Start Galaxy Buds Client Minimized
+EOF
 
 # Cleanup
 sudo apt-get autoremove -y
 sudo apt-get autoclean -y
+sudo flatpak uninstall --unused -y
+sudo flatpak repair
