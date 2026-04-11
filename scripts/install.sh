@@ -25,7 +25,7 @@ sudo apt-get install -y flatpak flatpak-builder
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
 # Install my fonts
-sudo cp -rv "$ROOT_DIR/.fonts/"* /usr/local/share/fonts/
+sudo cp -rv "$ROOT_DIR/fonts/"* /usr/local/share/fonts/
 sudo fc-cache -fv
 
 # Install my cursors
