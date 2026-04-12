@@ -134,6 +134,7 @@ sudo apt-get install -y vlc
 sudo flatpak install me.timschneeberger.GalaxyBudsClient
 
 # Set up autostart for the applications
+mkdir -p ~/.config/autostart
 cat <<EOF > ~/.config/autostart/ksnip.desktop
 [Desktop Entry]
 Type=Application
@@ -144,7 +145,6 @@ X-GNOME-Autostart-enabled=true
 Name=Ksnip
 Comment=Start Ksnip Screenshot Tool
 EOF
-mkdir -p ~/.config/autostart
 cat <<EOF > ~/.config/autostart/transmission-gtk.desktop
 [Desktop Entry]
 Type=Application
