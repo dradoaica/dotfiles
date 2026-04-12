@@ -124,6 +124,7 @@ sudo snap install gimp
 sudo apt-get install -y gnome-shell-extensions
 sudo apt-get install -y gnome-tweaks
 sudo apt-get install -y google-chrome-stable
+sudo apt-get install -y ksnip
 sudo apt-get install -y libreoffice
 sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic

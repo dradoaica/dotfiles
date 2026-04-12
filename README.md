@@ -27,7 +27,7 @@ The installation script automates the setup of:
     - Tools: Postman, Docker Desktop (with `pass` configured), Microk8s, Homebrew, Helm, helm-docs, K9s.
 - **Applications**:
     - Productivity: Google Chrome, LibreOffice, Transmission, VLC.
-    - Graphics: GIMP.
+    - Graphics: GIMP, Ksnip.
     - System Utilities: BleachBit, GNOME Tweaks, GNOME Extensions.
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
 
