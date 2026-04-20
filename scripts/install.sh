@@ -105,7 +105,7 @@ fi
 sudo snap install gitkraken --classic
 # Install and set up VS Code
 sudo snap install code --classic
-# Install JetBrains Toolbox App
+# Install JetBrains Toolbox
 JETBRAINS_TOOLBOX_URL=$(curl -s "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
 if [ -n "$JETBRAINS_TOOLBOX_URL" ]; then
   sudo mkdir -p /opt/jetbrains-toolbox
@@ -120,7 +120,6 @@ fi
 
 # Install the applications
 sudo apt-get install -y bleachbit
-sudo snap install gimp
 sudo apt-get install -y gnome-shell-extensions
 sudo apt-get install -y gnome-tweaks
 sudo apt-get install -y google-chrome-stable
@@ -131,6 +130,7 @@ sudo apt-get install -y polychromatic
 sudo apt-get install -y solaar
 sudo apt-get install -y transmission-gtk
 sudo apt-get install -y vlc
+sudo snap install gimp
 sudo flatpak install me.timschneeberger.GalaxyBudsClient
 
 # Set up autostart for the applications
@@ -145,16 +145,6 @@ X-GNOME-Autostart-enabled=true
 Name=Ksnip
 Comment=Start Ksnip Screenshot Tool
 EOF
-cat <<EOF > ~/.config/autostart/transmission-gtk.desktop
-[Desktop Entry]
-Type=Application
-Exec=bash -c "sleep 5 && transmission-gtk --minimized"
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Name=Transmission
-Comment=Start Transmission Minimized
-EOF
 cat <<EOF > ~/.config/autostart/galaxybudsclient.desktop
 [Desktop Entry]
 Type=Application
@@ -165,9 +155,21 @@ X-GNOME-Autostart-enabled=true
 Name=Galaxy Buds Client
 Comment=Start Galaxy Buds Client Minimized
 EOF
+cat <<EOF > ~/.config/autostart/transmission-gtk.desktop
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && transmission-gtk --minimized"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Transmission
+Comment=Start Transmission Minimized
+EOF
 
 # Cleanup
 sudo apt-get autoremove -y
 sudo apt-get autoclean -y
+sudo snap set system refresh.retain=2
+sudo snap remove --purge $(snap list --all | awk '/disabled/{print $1, $3}')
 sudo flatpak uninstall --unused -y
 sudo flatpak repair

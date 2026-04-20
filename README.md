@@ -22,7 +22,7 @@ The installation script automates the setup of:
 - **Custom Cursors**: Bibata, Phinger.
 - **Development Toolchains**:
     - Runtimes: Python, Go, Rust, Java, .NET, C/C++, PHP, Ruby, Node.js (via nvm).
-    - IDEs: VS Code, JetBrains Toolbox App.
+    - IDEs: VS Code, JetBrains Toolbox.
     - Git GUI: GitKraken.
     - Tools: Postman, Docker Desktop (with `pass` configured), Microk8s, Homebrew, Helm, helm-docs, K9s.
 - **Applications**:
