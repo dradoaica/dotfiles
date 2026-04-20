@@ -130,7 +130,9 @@ sudo apt-get install -y polychromatic
 sudo apt-get install -y solaar
 sudo apt-get install -y transmission-gtk
 sudo apt-get install -y vlc
+sudo snap install firefox
 sudo snap install gimp
+sudo snap install gnome-chess
 sudo flatpak install me.timschneeberger.GalaxyBudsClient
 
 # Set up autostart for the applications
