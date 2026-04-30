@@ -119,7 +119,6 @@ if [ -n "$JETBRAINS_TOOLBOX_URL" ]; then
 fi
 
 # Install the applications
-sudo apt-get install -y bleachbit
 sudo apt-get install -y gnome-shell-extensions
 sudo apt-get install -y gnome-tweaks
 sudo apt-get install -y google-chrome-stable

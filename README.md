@@ -1,7 +1,7 @@
 # Dotfiles
 
 A collection of configuration scripts and tools for setting up an efficient development environment on Ubuntu Desktop
-24.04 minimal installation.
+26.04 minimal installation.
 
 ## Quick Start
 
@@ -31,6 +31,17 @@ The installation script automates the setup of:
     - System Utilities: BleachBit, GNOME Tweaks, GNOME Extensions.
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
     - Games: GNOME Chess.
+
+## Misc
+
+### Screen Brightness
+
+* Ubuntu hard install sometimes does not, by default, enable GUI screen brightness:
+    * `sudo nano /etc/default/grub`
+    * change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
+      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"` or
+      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=vendor"`
+    * `sudo update-grub`
 
 ## License
 
