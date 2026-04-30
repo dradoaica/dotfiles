@@ -53,6 +53,12 @@ sudo chown gdm:gdm /var/lib/gdm3/seat0/config/monitors.xml
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"` or
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=vendor"`
     - `sudo update-grub`
+- After Ubuntu hard upgrade, sometimes brightness resets to 50% on every reboot. Force the Intel GPU to initialize
+  correctly and re‑attach the eDP panel:
+    - `sudo nano /etc/default/grub`
+    - change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
+      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash i915.force_probe=* i915.enable_dpcd_backlight=1 i915.enable_guc=3"`
+    - `sudo update-grub`
 
 ## License
 
