@@ -34,14 +34,25 @@ The installation script automates the setup of:
 
 ## Misc
 
+### Customize Login Screen
+
+- There is no simple way to customize the login
+  screen ([upstream issue](https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/2185)). As a workaround, you can
+  copy your personal monitor settings to the login screen with:
+
+```bash
+sudo cp ~/.config/monitors.xml /var/lib/gdm3/seat0/config/
+sudo chown gdm:gdm /var/lib/gdm3/seat0/config/monitors.xml
+```
+
 ### Screen Brightness
 
-* Ubuntu hard install sometimes does not, by default, enable GUI screen brightness:
-    * `sudo nano /etc/default/grub`
-    * change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
+- Ubuntu hard install sometimes does not, by default, enable GUI screen brightness:
+    - `sudo nano /etc/default/grub`
+    - change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"` or
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=vendor"`
-    * `sudo update-grub`
+    - `sudo update-grub`
 
 ## License
 
