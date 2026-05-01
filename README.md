@@ -81,7 +81,7 @@ sudo chown gdm:gdm /var/lib/gdm3/seat0/config/monitors.xml
     - `sudo update-grub`
 - If the above does not work (`ls /sys/class/backlight` shows only nvidia_0 even tough
   `lspci -nnk | grep -iA2 "vga\|3d\|display"` shows both graphics and `prime-select query` shows on-demand), set NVIDIA
-  GPU screen brightness on boot:
+  GPU screen brightness on login:
     - `sudo nano /etc/systemd/system/fix-screen-brightness.service`
     - Paste this configuration:
       ```ini
