@@ -28,11 +28,31 @@ The installation script automates the setup of:
 - **Applications**:
     - Productivity: Google Chrome, Firefox, LibreOffice, Transmission, VLC.
     - Graphics: GIMP, Ksnip.
-    - System Utilities: BleachBit, GNOME Tweaks, GNOME Extensions.
+    - System Utilities: GNOME Tweaks, GNOME Extensions.
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
     - Games: GNOME Chess.
 
 ## Misc
+
+### Additional Drivers
+
+- Show all devices that need drivers and which packages apply:
+
+```bash
+sudo ubuntu-drivers devices
+```
+
+- Show all driver packages that apply to the current system:
+
+```bash
+sudo ubuntu-drivers list
+```
+
+- Install a driver [driver[:version][,driver[:version]]]:
+
+```bash
+sudo ubuntu-drivers install nvidia-driver-595-open
+```
 
 ### Customize Login Screen
 
