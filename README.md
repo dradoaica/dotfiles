@@ -69,16 +69,35 @@ sudo chown gdm:gdm /var/lib/gdm3/seat0/config/monitors.xml
 
 - Ubuntu hard install sometimes does not, by default, enable GUI screen brightness:
     - `sudo nano /etc/default/grub`
-    - change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
+    - Change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"` or
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=vendor"`
     - `sudo update-grub`
-- After Ubuntu hard upgrade, sometimes brightness resets to 50% on every reboot. Force the Intel GPU to initialize
-  correctly and re‑attach the eDP panel:
+- After Ubuntu hard upgrade, sometimes screen brightness resets to 50% on every reboot. Force the Intel GPU to
+  initialize correctly and re‑attach the eDP panel:
     - `sudo nano /etc/default/grub`
-    - change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
+    - Change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
       `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash i915.force_probe=* i915.enable_dpcd_backlight=1 i915.enable_guc=3"`
     - `sudo update-grub`
+- If the above does not work (`ls /sys/class/backlight` shows only nvidia_0 even tough
+  `lspci -nnk | grep -iA2 "vga\|3d\|display"` shows both graphics and `prime-select query` shows on-demand), set NVIDIA
+  GPU screen brightness on boot:
+    - `sudo nano /etc/systemd/system/fix-screen-brightness.service`
+    - Paste this configuration:
+      ```ini
+      [Unit]
+      Description=Fix screen brightness
+      After=multi-user.target
+  
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/bash -c 'echo 100 > /sys/class/backlight/nvidia_0/brightness'
+  
+      [Install]
+      WantedBy=multi-user.target
+      ```
+    - `sudo systemctl enable fix-screen-brightness.service`
+    - `sudo systemctl start fix-screen-brightness.service`
 
 ## License
 
