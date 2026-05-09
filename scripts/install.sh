@@ -7,7 +7,8 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
-sudo add-apt-repository ppa:qbittorrent-team/qbittorrent-stable
+sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
+sudo add-apt-repository -y ppa:oguzhaninan/stacer
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
@@ -129,6 +130,7 @@ sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
 sudo apt-get install -y qbittorrent
 sudo apt-get install -y solaar
+sudo apt-get install -y stacer
 sudo apt-get install -y vlc
 sudo snap install firefox
 sudo snap install gimp
