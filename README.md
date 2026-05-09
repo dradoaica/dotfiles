@@ -28,7 +28,7 @@ The installation script automates the setup of:
 - **Applications**:
     - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC.
     - Graphics: GIMP, Ksnip.
-    - System Utilities: GNOME Tweaks, GNOME Extensions.
+    - System Utilities: GNOME Tweaks, GNOME Extensions, Stacer.
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
     - Games: GNOME Chess.
 
