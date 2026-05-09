@@ -26,7 +26,7 @@ The installation script automates the setup of:
     - Git GUI: GitKraken.
     - Tools: Postman, Docker Desktop (with `pass` configured), Microk8s, Homebrew, Helm, helm-docs, K9s.
 - **Applications**:
-    - Productivity: Google Chrome, Firefox, LibreOffice, Transmission, VLC.
+    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC.
     - Graphics: GIMP, Ksnip.
     - System Utilities: GNOME Tweaks, GNOME Extensions.
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
