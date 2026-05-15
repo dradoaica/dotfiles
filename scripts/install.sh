@@ -4,10 +4,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Add APT repositories
-sudo add-apt-repository -y ppa:oguzhaninan/stacer
 sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
 sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
+sudo add-apt-repository -y ppa:s4solutionsllc/nexis
 sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -126,11 +126,11 @@ sudo apt-get install -y gnome-tweaks
 sudo apt-get install -y google-chrome-stable
 sudo apt-get install -y ksnip
 sudo apt-get install -y libreoffice
+sudo apt-get install -y nexis
 sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
 sudo apt-get install -y qbittorrent
 sudo apt-get install -y solaar
-sudo apt-get install -y stacer
 sudo apt-get install -y vlc
 sudo snap install firefox
 sudo snap install gimp
