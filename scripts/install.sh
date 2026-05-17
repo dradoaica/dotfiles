@@ -19,12 +19,16 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 
 # Update/Upgrade
 sudo apt-get update && sudo apt-get upgrade -y
+sudo snap refresh
 
 # Install Flatpak package manager alongside APT and Snap
 sudo apt-get install -y flatpak flatpak-builder
 
 # Add Flatpak repositories
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Update Flatpak
+sudo flatpak update 
 
 # Install my fonts
 sudo cp -rv "$ROOT_DIR/fonts/"* /usr/local/share/fonts/
