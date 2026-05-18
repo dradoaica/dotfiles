@@ -17,9 +17,10 @@ chmod +x scripts/install.sh
 The installation script automates the setup of:
 
 - **Flatpak package manager alongside APT and Snap.**
-- **Custom Fonts**: System-wide installation of [Inter](https://rsms.me/inter/)
-  and [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
-- **Custom Cursors**: Bibata, Phinger.
+- **Custom Fonts**: System-wide installation of [Inter](https://rsms.me/inter/) and
+  [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
+- **Custom Cursors**: [Bibata](https://github.com/ful1e5/Bibata_Cursor) and
+  [Phinger](https://github.com/phisch/phinger-cursors).
 - **Development Toolchains**:
     - Runtimes: Python, Go, Rust, Java, .NET, C/C++, PHP, Ruby, Node.js (via nvm).
     - IDEs: VS Code, JetBrains Toolbox.
