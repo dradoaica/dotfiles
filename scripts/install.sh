@@ -4,9 +4,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Add APT repositories
-sudo add-apt-repository -y ppa:solaar-unifying/stable
+sudo add-apt-repository -y ppa:agornostal/ulauncher
 sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
+sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
+sudo add-apt-repository -y ppa:s4solutionsllc/nexis
+sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
@@ -17,12 +20,16 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 
 # Update/Upgrade
 sudo apt-get update && sudo apt-get upgrade -y
+sudo snap refresh
 
 # Install Flatpak package manager alongside APT and Snap
 sudo apt-get install -y flatpak flatpak-builder
 
 # Add Flatpak repositories
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+# Update Flatpak
+sudo flatpak update
 
 # Install my fonts
 sudo cp -rv "$ROOT_DIR/fonts/"* /usr/local/share/fonts/
@@ -33,7 +40,7 @@ sudo apt-get install -y bibata-cursor-theme
 sudo apt-get install -y phinger-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
-sudo apt-get install -y apt-transport-https ca-certificates gnupg2 pass build-essential git file jq procps curl grpcurl net-tools libfuse2
+sudo apt-get install -y apt-transport-https ca-certificates gnupg2 pass build-essential git file jq procps curl net-tools libfuse2t64
 # Install and set up Python
 sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl
@@ -119,16 +126,20 @@ if [ -n "$JETBRAINS_TOOLBOX_URL" ]; then
 fi
 
 # Install the applications
-sudo apt-get install -y bleachbit
+sudo apt-get install -y clamav clamtk clamav-daemon
+sudo apt-get install -y deja-dup
+sudo apt-get install -y file-roller
 sudo apt-get install -y gnome-shell-extensions
 sudo apt-get install -y gnome-tweaks
 sudo apt-get install -y google-chrome-stable
 sudo apt-get install -y ksnip
 sudo apt-get install -y libreoffice
+sudo apt-get install -y nexis
 sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
+sudo apt-get install -y qbittorrent
 sudo apt-get install -y solaar
-sudo apt-get install -y transmission-gtk
+sudo apt-get install -y ulauncher
 sudo apt-get install -y vlc
 sudo snap install firefox
 sudo snap install gimp
@@ -157,15 +168,15 @@ X-GNOME-Autostart-enabled=true
 Name=Galaxy Buds Client
 Comment=Start Galaxy Buds Client Minimized
 EOF
-cat <<EOF > ~/.config/autostart/transmission-gtk.desktop
+cat <<EOF > ~/.config/autostart/qbittorrent.desktop
 [Desktop Entry]
 Type=Application
-Exec=bash -c "sleep 5 && transmission-gtk --minimized"
+Exec=bash -c "sleep 5 && qbittorrent"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Name=Transmission
-Comment=Start Transmission Minimized
+Name=qBittorrent
+Comment=Start qBittorrent
 EOF
 
 # Cleanup
