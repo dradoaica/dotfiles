@@ -1,5 +1,5 @@
 [/]
-application-shortcuts=[{'id': 'bleachbit-root.desktop'}, {'id': 'org.gnome.Settings.desktop'}, {'id': 'ArcMenu_Software', 'name': 'Software'}, {'id': 'update-manager.desktop'}, {'id': 'org.gnome.SystemMonitor.desktop'}, {'id': 'org.gnome.Terminal.desktop'}, {'id': 'org.gnome.tweaks.desktop'}]
+application-shortcuts=[{'id': 'org.gnome.Settings.desktop'}, {'id': 'snap-store_snap-store.desktop'}, {'id': 'update-manager.desktop'}, {'id': 'net.nokyan.Resources.desktop'}, {'id': 'org.gnome.Ptyxis.desktop'}, {'id': 'org.gnome.tweaks.desktop'}]
 apps-show-extra-details=false
 arcmenu-extra-categories-links=[(0, false), (1, false), (2, false), (3, false), (4, false)]
 avatar-style='Round'
@@ -22,13 +22,13 @@ menu-button-icon-size=48
 menu-button-padding=-1
 menu-button-position-offset=0
 menu-layout='Default'
-multi-monitor=false
+multi-monitor=true
 override-menu-theme=false
-pinned-apps=[{'id': 'google-chrome.desktop'}, {'id': 'org.gnome.Nautilus.desktop'}, {'id': 'org.gnome.Terminal.desktop'}]
+pinned-apps=[{'id': 'google-chrome.desktop'}, {'id': 'org.gnome.Nautilus.desktop'}, {'id': 'org.gnome.Ptyxis.desktop'}]
 pop-folders-data={'Library Home': 'Library Home'}
 position-in-panel='Left'
 prefs-visible-page=0
-recently-installed-apps=@as []
+recently-installed-apps=['retroarch_retroarch.desktop', 'software-properties-gtk.desktop']
 search-entry-border-radius=(true, 25)
 shortcut-icon-type='Full_Color'
 show-activities-button=false
