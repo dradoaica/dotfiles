@@ -50,6 +50,7 @@ sudo fc-cache -fv
 # Install my cursors
 sudo apt-get install -y bibata-cursor-theme
 sudo apt-get install -y phinger-cursor-theme
+sudo apt-get install -y breeze-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
 sudo apt-get install -y ca-certificates gnupg2 pass build-essential git file jq procps net-tools libfuse2t64
@@ -84,8 +85,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-nvm install 24.18.0
-nvm use 24.18.0
+nvm install 24.21.0
+nvm use 24.21.0
 # Install and set up Postman
 sudo snap install postman
 # Install and set up Docker Desktop
@@ -139,7 +140,7 @@ if [ -n "$JETBRAINS_TOOLBOX_URL" ]; then
   pkill jetbrains-toolbox || true
 fi
 
-# Install the applications
+# Install applications
 sudo apt-get install -y clamav clamtk clamav-daemon
 sudo apt-get install -y deja-dup
 sudo apt-get install -y file-roller
@@ -161,7 +162,7 @@ sudo snap install gnome-chess
 sudo flatpak install me.timschneeberger.GalaxyBudsClient
 sudo flatpak install com.github.dail8859.NotepadNext
 
-# Set up autostart for the applications
+# Set up autostart for applications
 mkdir -p ~/.config/autostart
 cat <<EOF > ~/.config/autostart/ksnip.desktop
 [Desktop Entry]
