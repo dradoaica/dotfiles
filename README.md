@@ -28,12 +28,12 @@ The installation script automates the setup of:
     - Git GUI: GitKraken.
     - Tools: Postman, Docker Desktop (with `pass` configured), Multipass, Microk8s, Homebrew, Helm, helm-docs, K9s.
 - **Applications**:
-    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next.
+    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, acrordrdc (WINE).
     - Graphics: GIMP, Ksnip.
     - System Utilities: GNOME Tweaks, GNOME Extensions, Nexis, Ulauncher.
     - Security: ClamAV, ClamTK
     - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
-    - Games: GNOME Chess.
+    - Games: GNOME Chess, Steam.
 
 ## Misc
 
@@ -167,6 +167,14 @@ wsf set \
   --pinch-zoom 1.00 \
   --pinch-rotate 1.00
 wsf enable
+```
+
+### balenaEtcher
+
+Download the `.deb` from the [latest release](https://github.com/balena-io/etcher/releases/latest):
+
+```bash
+sudo apt-get install -y ./balena-etcher_${version}_amd64.deb
 ```
 
 ## License

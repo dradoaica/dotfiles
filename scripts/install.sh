@@ -154,8 +154,10 @@ sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
 sudo apt-get install -y qbittorrent
 sudo apt-get install -y solaar
+sudo apt-get install -y steam
 sudo apt-get install -y ulauncher
 sudo apt-get install -y vlc
+sudo snap install acrordrdc
 sudo snap install firefox
 sudo snap install gimp
 sudo snap install gnome-chess
