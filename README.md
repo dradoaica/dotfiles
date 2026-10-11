@@ -177,6 +177,18 @@ Download the `.deb` from the [latest release](https://github.com/balena-io/etche
 sudo apt-get install -y ./balena-etcher_${version}_amd64.deb
 ```
 
+### The Craft App Launcher (Adobe, Microsoft Office, Autodesk, Avid, etc. suites alternative)
+
+One place to install, update and open every app in the Craft App Suite, rebuilt in pure Rust. PhotoCraft, LightCraft,
+FilmCraft, DesignCraft, VectorCraft, PdfCraft, EffectCraft, WordCraft, DeckCraft, GridCraft, CADCraft and SoundCraft:
+the right build for your computer, kept up to date.
+
+Download the `.deb` from the [latest release](https://github.com/storytold/craft-launcher/releases/latest):
+
+```bash
+sudo apt-get install -y ./artcraft-launcher-${version}-linux-x86_64.deb
+```
+
 ## License
 
 See [MIT License](LICENSE.md).
