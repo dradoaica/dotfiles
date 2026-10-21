@@ -7,9 +7,14 @@ export DEBIAN_FRONTEND=noninteractive
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Append a line to ~/.bashrc only if it is not already there
+append_to_bashrc() {
+  grep -qxF "$1" ~/.bashrc 2>/dev/null || echo "$1" >> ~/.bashrc
+}
+
 # Install pre-requisite packages
 sudo apt-get update
-sudo apt-get install -y wget curl apt-transport-https software-properties-common
+sudo apt-get install -y wget curl software-properties-common
 
 # Add APT repositories
 source /etc/os-release
@@ -21,12 +26,12 @@ sudo add-apt-repository -y ppa:s4solutionsllc/nexis
 sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
-sudo curl -fsSL https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb -o packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-sudo rm packages-microsoft-prod.deb
+curl -fsSL "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
+sudo dpkg -i /tmp/packages-microsoft-prod.deb
+rm -f /tmp/packages-microsoft-prod.deb
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
@@ -41,7 +46,7 @@ sudo apt-get install -y flatpak flatpak-builder
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
 # Update Flatpak
-sudo flatpak update
+sudo flatpak update -y
 
 # Install my fonts
 sudo cp -rv "$ROOT_DIR/fonts/"* /usr/local/share/fonts/
@@ -59,14 +64,10 @@ sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl
 sudo apt-get install -y python3-venv
 # Install and set up Go
-sudo apt-get install -y golang-go 
-export PATH=$PATH:/usr/local/go/bin
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+sudo apt-get install -y golang-go
 # Install and set up Rust
-sudo apt-get install -y cargo
 sudo snap install rustup --classic
 export PATH=$PATH:/snap/bin
-echo 'export PATH=$PATH:/snap/bin' >> ~/.bashrc
 rustup install stable
 # Install and set up GCC
 sudo apt-get install -y gcc g++
@@ -91,14 +92,14 @@ nvm use 24.21.0
 sudo snap install postman
 # Install and set up Docker Desktop
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-curl -L https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb -o /tmp/docker-desktop-amd64.deb
+curl -fL https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb -o /tmp/docker-desktop-amd64.deb
 sudo apt-get install -y /tmp/docker-desktop-amd64.deb
-sudo rm -rf /tmp/docker-desktop-amd64.deb
+rm -f /tmp/docker-desktop-amd64.deb
 if [ ! -d "$HOME/.password-store" ]; then
-  GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" | awk -F: '/^pub/ { print $5; exit }')
+  GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
   if [ -z "$GPG_KEY_ID" ]; then
     gpg --batch --passphrase "" --quick-gen-key "Docker Desktop" default default
-    GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" | awk -F: '/^pub/ { print $5; exit }')
+    GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
   fi
   pass init "$GPG_KEY_ID"
 fi
@@ -107,35 +108,38 @@ sudo snap install multipass
 # Install and set up Microk8s
 sudo snap install microk8s --classic
 sudo snap install kubectl --classic
-sudo usermod -a -G microk8s $USER
+sudo usermod -a -G microk8s "$USER"
 mkdir -p ~/.kube
-sudo chown -R $USER ~/.kube
-newgrp microk8s
-microk8s config > ~/.kube/config
+sudo chown -R "$USER" ~/.kube
+# Group membership applies after the next login, so use sudo here instead of newgrp
+sudo microk8s status --wait-ready
+sudo microk8s config > ~/.kube/config
 # Install and set up Homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
-test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+if [ -d ~/.linuxbrew ]; then eval "$(~/.linuxbrew/bin/brew shellenv)"; fi
+if [ -d /home/linuxbrew/.linuxbrew ]; then eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"; fi
 BREW_PREFIX=$(brew --prefix 2>/dev/null || echo "")
 if [ -n "$BREW_PREFIX" ]; then
-  echo "eval \"\$($BREW_PREFIX/bin/brew shellenv)\"" >> ~/.bashrc
+  append_to_bashrc "eval \"\$($BREW_PREFIX/bin/brew shellenv)\""
   brew install helm
   brew install norwoodj/tap/helm-docs
   brew install derailed/k9s/k9s
+  brew install --cask claude-code
 fi
 # Install and set up GitKraken
 sudo snap install gitkraken --classic
 # Install and set up VS Code
 sudo snap install code --classic
 # Install JetBrains Toolbox
-JETBRAINS_TOOLBOX_URL=$(curl -s "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
-if [ -n "$JETBRAINS_TOOLBOX_URL" ]; then
+JETBRAINS_TOOLBOX_URL=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
+if [ -n "$JETBRAINS_TOOLBOX_URL" ] && [ "$JETBRAINS_TOOLBOX_URL" != "null" ]; then
   sudo mkdir -p /opt/jetbrains-toolbox
-  curl -L "$JETBRAINS_TOOLBOX_URL" -o /tmp/jetbrains-toolbox.tar.gz
+  curl -fL "$JETBRAINS_TOOLBOX_URL" -o /tmp/jetbrains-toolbox.tar.gz
   sudo tar -xzf /tmp/jetbrains-toolbox.tar.gz -C /opt/jetbrains-toolbox --strip-components=1
-  sudo rm -rf /tmp/jetbrains-toolbox.tar.gz
-  sudo chmod +x /opt/jetbrains-toolbox/jetbrains-toolbox
-  /opt/jetbrains-toolbox/jetbrains-toolbox &
+  rm -f /tmp/jetbrains-toolbox.tar.gz
+  sudo chmod +x /opt/jetbrains-toolbox/bin/jetbrains-toolbox
+  # First launch registers the desktop entry and autostart
+  /opt/jetbrains-toolbox/bin/jetbrains-toolbox &
   sleep 5
   pkill jetbrains-toolbox || true
 fi
@@ -161,8 +165,8 @@ sudo snap install acrordrdc
 sudo snap install firefox
 sudo snap install gimp
 sudo snap install gnome-chess
-sudo flatpak install me.timschneeberger.GalaxyBudsClient
-sudo flatpak install com.github.dail8859.NotepadNext
+sudo flatpak install -y flathub me.timschneeberger.GalaxyBudsClient
+sudo flatpak install -y flathub com.github.dail8859.NotepadNext
 
 # Set up autostart for applications
 mkdir -p ~/.config/autostart
@@ -201,7 +205,7 @@ EOF
 sudo apt-get autoremove -y
 sudo apt-get autoclean -y
 sudo snap set system refresh.retain=2
-snap list --all | awk '/disabled/{print $1, $3}' | while read snap rev; do
+snap list --all | awk '/disabled/{print $1, $3}' | while IFS=' ' read -r snap rev; do
     sudo snap remove --revision="$rev" "$snap"
 done
 sudo flatpak uninstall --unused -y
