@@ -1,67 +1,162 @@
 # Dotfiles
 
-A collection of configuration scripts and tools for setting up an efficient development environment on Ubuntu Desktop
-26.04 minimal installation.
+Scripts and settings for turning a fresh **Ubuntu Desktop 26.04 (minimal installation, amd64)** into a complete
+development workstation.
+
+- [Before You Run](#before-you-run)
+- [Quick Start](#quick-start)
+- [What's Included](#whats-included)
+- [Post-Install](#post-install)
+- [Troubleshooting](#troubleshooting)
+- [Optional Apps](#optional-apps)
+- [License](#license)
+
+## Before You Run
+
+`scripts/install.sh` makes system-wide changes. Read it first, and be aware that it:
+
+- Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
+- Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
+- Adds third-party APT sources: six PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis, Solaar) and the
+  Google Chrome, Docker and Microsoft repositories.
+- Appends the Homebrew environment to `~/.bashrc`.
+- Adds your user to the `microk8s` group and writes `~/.kube/config`.
+- Creates autostart entries for Ksnip, Galaxy Buds Client and qBittorrent in `~/.config/autostart`.
+- Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
+  can store credentials. Replace it with a passphrase-protected key if that matters to you.
+
+The script is safe to re-run.
 
 ## Quick Start
 
-To install everything, run the following command from the repository root:
-
 ```bash
-chmod +x scripts/install.sh
-./scripts/install.sh
+git clone https://github.com/dradoaica/dotfiles.git
+cd dotfiles
+bash scripts/install.sh
 ```
 
-## What's Included?
+When it finishes, **log out and back in** so the new group membership and fonts take effect, then work through
+[Post-Install](#post-install).
 
-The installation script automates the setup of:
+## What's Included
 
-- **Flatpak package manager alongside APT and Snap.**
-- **Custom Fonts**: System-wide installation of [Inter](https://rsms.me/inter/) and
-  [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
-- **Custom Cursors**: System-wide installation
-  of [Bibata](https://github.com/ful1e5/Bibata_Cursor), [Phinger](https://github.com/phisch/phinger-cursors),
+### Installed Automatically
+
+- **Package managers**: Flatpak (with Flathub) alongside APT and Snap, plus Homebrew.
+- **Fonts**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), installed
+  system-wide from `fonts/`.
+- **Cursors**: [Bibata](https://github.com/ful1e5/Bibata_Cursor), [Phinger](https://github.com/phisch/phinger-cursors)
   and [Breeze](https://github.com/KDE/breeze).
-- **Development Toolchains**:
-    - Runtimes: Python, Go, Rust, Java, .NET, C/C++, PHP, Ruby, Node.js (via nvm).
+- **Development**:
+    - Languages: Python, Go, Rust (via rustup only), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby, Node.js 24 (via
+      nvm).
     - IDEs: VS Code, JetBrains Toolbox.
     - Git GUI: GitKraken.
-    - Tools: Postman, Docker Desktop (with `pass` configured), Multipass, Microk8s, Homebrew, Helm, helm-docs, K9s.
+    - Containers and Kubernetes: Docker Engine, Docker Desktop, Multipass, MicroK8s, kubectl, Helm, helm-docs, K9s.
+    - Other: Postman.
 - **Applications**:
-    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, acrordrdc (WINE).
+    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, Adobe Acrobat Reader
+      (`acrordrdc` snap, runs via WINE).
     - Graphics: GIMP, Ksnip.
-    - System Utilities: GNOME Tweaks, GNOME Extensions, Nexis, Ulauncher.
-    - Security: ClamAV, ClamTK
-    - Hardware Management: Solaar (Logitech), OpenRazer/Polychromatic (Razer), GalaxyBudsClient (Samsung Galaxy Buds).
+    - System: GNOME Tweaks, GNOME Shell Extensions, Nexis, Ulauncher, Déjà Dup, File Roller.
+    - Security: ClamAV, ClamTK.
+    - Hardware: Solaar (Logitech), OpenRazer and Polychromatic (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
     - Games: GNOME Chess, Steam.
 
-## Misc
+### Manual Steps
 
-### Additional Drivers
+These are not automated; see [Post-Install](#post-install) and [Optional Apps](#optional-apps):
 
-- Show all devices that need drivers and which packages apply:
+- GNOME extensions and their settings (ArcMenu, Dash to Panel).
+- Ulauncher hotkey on Wayland.
+- Proprietary drivers.
+
+## Post-Install
+
+### GNOME Extensions
+
+The extensions I use:
+
+| Extension                                                                                                     | UUID                                                   |
+|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| [Alphabetical App Grid](https://extensions.gnome.org/extension/4269/alphabetical-app-grid/)                   | `AlphabeticalAppGrid@stuarthayhurst`                   |
+| [ArcMenu](https://extensions.gnome.org/extension/3628/arcmenu/)                                               | `arcmenu@arcmenu.com`                                  |
+| [Battery Health Charging](https://extensions.gnome.org/extension/5724/battery-health-charging/)               | `Battery-Health-Charging@maniacx.github.com`           |
+| [Bing Wallpaper](https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/)                         | `BingWallpaper@ineffable-gmail.com`                    |
+| [Burn My Windows](https://extensions.gnome.org/extension/4679/burn-my-windows/)                               | `burn-my-windows@schneegans.github.com`                |
+| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/)                        | `clipboard-indicator@tudmotu.com`                      |
+| [Compiz alike magic lamp effect](https://extensions.gnome.org/extension/3740/compiz-alike-magic-lamp-effect/) | `compiz-alike-magic-lamp-effect@hermes83.github.com`   |
+| [Compiz windows effect](https://extensions.gnome.org/extension/3210/compiz-windows-effect/)                   | `compiz-windows-effect@hermes83.github.com`            |
+| [Dash to Panel](https://extensions.gnome.org/extension/1160/dash-to-panel/)                                   | `dash-to-panel@jderose9.github.com`                    |
+| [Desktop Cube](https://extensions.gnome.org/extension/4648/desktop-cube/)                                     | `desktop-cube@schneegans.github.com`                   |
+| [Removable Drive Menu](https://extensions.gnome.org/extension/7/removable-drive-menu/)                        | `drive-menu@gnome-shell-extensions.gcampax.github.com` |
+| [Lock Keys](https://extensions.gnome.org/extension/36/lock-keys/)                                             | `lockkeys@vaina.lt`                                    |
+| [Sound Percentage](https://extensions.gnome.org/extension/7426/sound-percentage/)                             | `sound-percentage@subashghimire.info.np`               |
+| [Tiling Shell](https://extensions.gnome.org/extension/7065/tiling-shell/)                                     | `tilingshell@ferrarodomenico.com`                      |
+
+Install them all at once with [gnome-extensions-cli](https://github.com/essembeh/gnome-extensions-cli):
 
 ```bash
+pipx install gnome-extensions-cli --system-site-packages
+gext install \
+  AlphabeticalAppGrid@stuarthayhurst \
+  arcmenu@arcmenu.com \
+  Battery-Health-Charging@maniacx.github.com \
+  BingWallpaper@ineffable-gmail.com \
+  burn-my-windows@schneegans.github.com \
+  clipboard-indicator@tudmotu.com \
+  compiz-alike-magic-lamp-effect@hermes83.github.com \
+  compiz-windows-effect@hermes83.github.com \
+  dash-to-panel@jderose9.github.com \
+  desktop-cube@schneegans.github.com \
+  drive-menu@gnome-shell-extensions.gcampax.github.com \
+  lockkeys@vaina.lt \
+  sound-percentage@subashghimire.info.np \
+  tilingshell@ferrarodomenico.com
+```
+
+Then import the ArcMenu and Dash to Panel settings from the repository root:
+
+```bash
+dconf load /org/gnome/shell/extensions/arcmenu/ < gnome/dconf/arc-menu-settings.dconf
+dconf load /org/gnome/shell/extensions/dash-to-panel/ < gnome/dconf/dash-to-panel-settings.dconf
+```
+
+To list the user-installed extensions in alphabetical order:
+
+```bash
+find ~/.local/share/gnome-shell/extensions -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort
+```
+
+### Ulauncher Hotkey on Wayland
+
+On Wayland, Ulauncher does not receive its hotkey while some windows are focused (e.g. Terminal or Settings). Bind it
+through GNOME instead:
+
+1. In Ulauncher Preferences, set the hotkey to something you will never press.
+2. Open **Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts** and click **Add Shortcut**.
+3. Set the command to `ulauncher-toggle`, choose a name and shortcut, then click **Add**.
+
+### Proprietary Drivers
+
+```bash
+# Show devices that need drivers and the packages that apply
 sudo ubuntu-drivers devices
-```
 
-- Show all driver packages that apply to the current system:
-
-```bash
+# Show all driver packages that apply to this system
 sudo ubuntu-drivers list
-```
 
-- Install a driver [driver[:version][,driver[:version]]]:
-
-```bash
+# Install a specific driver: driver[:version][,driver[:version]]
 sudo ubuntu-drivers install nvidia-driver-595-open
 ```
 
-### Customize Login Screen
+## Troubleshooting
 
-There is no simple way to customize the login screen
-([upstream issue](https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/2185)). As a workaround, you can copy
-your personal monitor settings to the login screen with:
+### Login Screen Uses the Wrong Monitor Layout
+
+GNOME has no setting for the login screen layout
+([upstream issue](https://gitlab.gnome.org/GNOME/gnome-control-center/-/issues/2185)). Copy your own monitor
+configuration to it instead:
 
 ```bash
 sudo cp ~/.config/monitors.xml /var/lib/gdm3/seat0/config/
@@ -70,96 +165,69 @@ sudo chown gdm:gdm /var/lib/gdm3/seat0/config/monitors.xml
 
 ### Screen Brightness
 
-- Ubuntu hard install sometimes does not, by default, enable GUI screen brightness:
-    - `sudo nano /etc/default/grub`
-    - Change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
-      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"` or
-      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=vendor"`
-    - `sudo update-grub`
-- After Ubuntu hard upgrade, sometimes screen brightness resets to 50% on every reboot. Force the Intel GPU to
-  initialize correctly and re‑attach the eDP panel:
-    - `sudo nano /etc/default/grub`
-    - Change the line `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"` to
-      `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash i915.force_probe=* i915.enable_dpcd_backlight=1 i915.enable_guc=3"`
-    - `sudo update-grub`
-- If the above does not work (`ls /sys/class/backlight` shows only nvidia_0 even tough
-  `lspci -nnk | grep -iA2 "vga\|3d\|display"` shows both graphics and `prime-select query` shows on-demand), set NVIDIA
-  GPU screen brightness on login:
-    - `sudo nano /etc/systemd/system/fix-screen-brightness.service`
-    - Paste this configuration:
-      ```ini
-      [Unit]
-      Description=Fix screen brightness
-      After=multi-user.target
-  
-      [Service]
-      Type=oneshot
-      ExecStart=/bin/bash -c 'echo 100 > /sys/class/backlight/nvidia_0/brightness'
-  
-      [Install]
-      WantedBy=multi-user.target
-      ```
-    - `sudo systemctl enable fix-screen-brightness.service`
-    - `sudo systemctl start fix-screen-brightness.service`
+Try these in order. For the first two, edit `/etc/default/grub` (e.g. `sudo nano /etc/default/grub`), change the
+`GRUB_CMDLINE_LINUX_DEFAULT` line as shown, then run `sudo update-grub` and reboot.
 
-### Ulauncher Hotkey In Wayland
+1. **Brightness controls missing after a fresh install**:
 
-Ulauncher in Wayland doesn't receive hotkey events when triggered from some windows (e.g., Terminal or OS Settings).
+   ```
+   GRUB_CMDLINE_LINUX_DEFAULT="quiet splash acpi_backlight=native"
+   ```
 
-Please follow these steps to fix that:
+   If that does not help, try `acpi_backlight=vendor` instead.
 
-- Open Ulauncher Preferences and set a hotkey to something you'll never use
-- Open `Settings > Keyboard` (it may be named "Keyboard Shortcuts"), then scroll down to
-  `View and Customize Shortcuts > Custom Shortcuts > + Add Shrortcut`
-- In Command enter `ulauncher-toggle`, set the name and shortcut, then click `Add`
+2. **Brightness resets to 50% on every boot after a release upgrade** (Intel GPU). Force the Intel GPU to initialise
+   correctly and re-attach the eDP panel:
 
-### GNOME Extensions
+   ```
+   GRUB_CMDLINE_LINUX_DEFAULT="quiet splash i915.force_probe=* i915.enable_dpcd_backlight=1 i915.enable_guc=3"
+   ```
 
-A curated set of extensions that make Ubuntu fast, polished, and genuinely enjoyable to use:
+3. **Only `nvidia_0` is listed** in `ls /sys/class/backlight`, even though
+   `lspci -nnk | grep -iA2 "vga\|3d\|display"` shows both GPUs and `prime-select query` reports `on-demand`. Set the
+   NVIDIA backlight to full brightness at boot with a systemd service:
 
-- AlphabeticalAppGrid@stuarthayhurst
-- arcmenu@arcmenu.com
-- Battery-Health-Charging@maniacx.github.com
-- BingWallpaper@ineffable-gmail.com
-- burn-my-windows@schneegans.github.com
-- clipboard-indicator@tudmotu.com
-- compiz-alike-magic-lamp-effect@hermes83.github.com
-- compiz-windows-effect@hermes83.github.com
-- dash-to-panel@jderose9.github.com
-- desktop-cube@schneegans.github.com
-- drive-menu@gnome-shell-extensions.gcampax.github.com
-- lockkeys@vaina.lt
-- sound-percentage@subashghimire.info.np
-- tilingshell@ferrarodomenico.com
+   ```bash
+   sudo tee /etc/systemd/system/fix-screen-brightness.service > /dev/null <<'EOF'
+   [Unit]
+   Description=Fix screen brightness
+   After=multi-user.target
 
-To import the settings for ArcMenu and Dash to Panel, run the following commands from the repository root:
+   [Service]
+   Type=oneshot
+   ExecStart=/bin/bash -c 'echo 100 > /sys/class/backlight/nvidia_0/brightness'
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+   sudo systemctl enable --now fix-screen-brightness.service
+   ```
+
+## Optional Apps
+
+These are distributed as `.deb` files on GitHub releases and are not installed by the script. The commands below
+use the [GitHub CLI](https://cli.github.com/) (`gh`) to download the latest release; you can also download the file
+from the linked releases page. These packages come from third parties: check the project and any published checksums
+before installing.
+
+### OpenLogi
+
+Open-source alternative to Solaar for Logitech devices.
+[Releases](https://github.com/AprilNEA/OpenLogi/releases/latest).
 
 ```bash
-dconf load /org/gnome/shell/extensions/arcmenu/ < gnome/dconf/arc-menu-settings.dconf
-dconf load /org/gnome/shell/extensions/dash-to-panel/ < gnome/dconf/dash-to-panel-settings.dconf
-```
-
-To list only the user-installed GNOME extensions in alphabetical order, run:
-
-```bash
-find ~/.local/share/gnome-shell/extensions -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort
-```
-
-### OpenLogi (Solaar alternative)
-
-Download the `.deb` from the [latest release](https://github.com/AprilNEA/OpenLogi/releases/latest):
-
-```bash
-sudo apt-get install -y ./openlogi-${version}-linux-amd64.deb
+gh release download -R AprilNEA/OpenLogi --pattern '*linux-amd64.deb' -D /tmp/openlogi
+sudo apt-get install -y /tmp/openlogi/*.deb
 ```
 
 ### Wayland Scroll Factor
 
-Download the `.deb` from
-the [latest release](https://github.com/daniel-g-carrasco/wayland-scroll-factor/releases/latest):
+Adjusts touchpad scroll and gesture speed on Wayland.
+[Releases](https://github.com/daniel-g-carrasco/wayland-scroll-factor/releases/latest).
 
 ```bash
-sudo apt-get install -y ./wayland-scroll-factor_${version}-1_amd64.deb
+gh release download -R daniel-g-carrasco/wayland-scroll-factor --pattern 'wayland-scroll-factor_*_amd64.deb' -D /tmp/wsf
+sudo apt-get install -y /tmp/wsf/*.deb
 
 wsf set \
   --scroll-vertical 0.30 \
@@ -171,24 +239,27 @@ wsf enable
 
 ### balenaEtcher
 
-Download the `.deb` from the [latest release](https://github.com/balena-io/etcher/releases/latest):
+Writes OS images to USB drives and SD cards.
+[Releases](https://github.com/balena-io/etcher/releases/latest).
 
 ```bash
-sudo apt-get install -y ./balena-etcher_${version}_amd64.deb
+gh release download -R balena-io/etcher --pattern '*_amd64.deb' -D /tmp/etcher
+sudo apt-get install -y /tmp/etcher/*.deb
 ```
 
-### The Craft App Launcher (Adobe, Microsoft Office, Autodesk, Avid, etc. suites alternative)
+### Craft App Launcher
 
-One place to install, update and open every app in the Craft App Suite, rebuilt in pure Rust. PhotoCraft, LightCraft,
-FilmCraft, DesignCraft, VectorCraft, PdfCraft, EffectCraft, WordCraft, DeckCraft, GridCraft, CADCraft and SoundCraft:
-the right build for your computer, kept up to date.
-
-Download the `.deb` from the [latest release](https://github.com/storytold/craft-launcher/releases/latest):
+Installer and updater for the Craft app suite (image, video, vector, document and CAD editors).
+[Releases](https://github.com/storytold/craft-launcher/releases/latest).
 
 ```bash
-sudo apt-get install -y ./artcraft-launcher-${version}-linux-x86_64.deb
+gh release download -R storytold/craft-launcher --pattern '*-linux-x86_64.deb' -D /tmp/craft
+sudo apt-get install -y /tmp/craft/*.deb
 ```
 
 ## License
 
-See [MIT License](LICENSE.md).
+The scripts and configuration in this repository are released under the [MIT License](LICENSE.md).
+
+The bundled fonts keep their own licenses: Inter and JetBrains Mono are both distributed under the SIL Open Font
+License (see `fonts/Inter/OFL.txt` and `fonts/JetBrainsMono-2.304/OFL.txt`).
