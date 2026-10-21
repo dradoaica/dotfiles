@@ -247,7 +247,7 @@ gh release download -R balena-io/etcher --pattern '*_amd64.deb' -D /tmp/etcher
 sudo apt-get install -y /tmp/etcher/*.deb
 ```
 
-### Craft App Launcher
+### ArtCraft Launcher
 
 Installer and updater for the Craft app suite (image, video, vector, document and CAD editors).
 [Releases](https://github.com/storytold/craft-launcher/releases/latest).
