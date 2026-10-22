@@ -1,0 +1,13 @@
+[keyboard]
+
+[mouse]
+accel-profile='default'
+left-handed=false
+natural-scroll=false
+speed=0.0
+
+[touchpad]
+click-method='areas'
+natural-scroll=true
+speed=-2.7755575615628914e-17
+two-finger-scrolling-enabled=true

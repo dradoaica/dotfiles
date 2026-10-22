@@ -1,0 +1,7 @@
+{
+  "workbench.startupEditor": "none",
+  "window.autoDetectColorScheme": true,
+  "git.enableSmartCommit": true,
+  "resharper.region.region": "Europe",
+  "resharper.dataSharing.allowDataSharing": false
+}

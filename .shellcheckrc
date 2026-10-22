@@ -1,0 +1,3 @@
+# Follow `source`d files where they exist, and don't warn about files that only exist at runtime (nvm, os-release)
+external-sources=true
+disable=SC1091

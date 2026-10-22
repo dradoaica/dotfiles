@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && ksnip"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Ksnip
+Comment=Start Ksnip Screenshot Tool

@@ -1,0 +1,5 @@
+# Editor and OS leftovers, ignored in every repository
+*~
+*.swp
+.directory
+.DS_Store

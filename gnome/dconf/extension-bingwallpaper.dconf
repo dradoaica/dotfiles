@@ -1,0 +1,7 @@
+[/]
+always-export-bing-json=false
+delete-previous=true
+download-folder='~/Pictures/BingWallpaper/'
+hide=false
+icon-name='bing-symbolic'
+notify=false

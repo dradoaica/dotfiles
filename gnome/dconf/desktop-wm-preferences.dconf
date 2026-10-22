@@ -1,0 +1,9 @@
+[/]
+action-middle-click-titlebar='none'
+action-right-click-titlebar='menu'
+auto-raise=true
+button-layout=':minimize,maximize,close'
+focus-mode='click'
+num-workspaces=4
+resize-with-right-button=false
+titlebar-font='Inter 12'

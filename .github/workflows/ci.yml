@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck
+        run: shellcheck scripts/*.sh home/bash/.bashrc.d/*.sh
+
+  link:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Stow
+        run: sudo apt-get update && sudo apt-get install -y stow
+      - name: Link into a fresh home directory
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          mkdir -p "$HOME"
+          cp /etc/skel/.bashrc /etc/skel/.profile "$HOME/"
+          bash scripts/link.sh
+          bash scripts/link.sh --check
+          # The existing .bashrc and .profile must have been backed up
+          test -f "$HOME"/.dotfiles-backup/*/.bashrc
+          # A second run must not back up anything
+          if bash scripts/link.sh | grep "Backed up"; then exit 1; fi
+      - name: Start an interactive shell with the linked files
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          bash -ic 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
+      - name: Unlink
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          bash scripts/link.sh --unlink
+          if bash scripts/link.sh --check; then exit 1; fi
+          test ! -e "$HOME/.gitconfig"

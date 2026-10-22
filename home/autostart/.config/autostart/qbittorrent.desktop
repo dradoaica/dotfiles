@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && qbittorrent"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=qBittorrent
+Comment=Start qBittorrent

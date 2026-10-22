@@ -1,0 +1,10 @@
+[/]
+amend-power-indicator=false
+charging-mode='ful'
+default-threshold=true
+device-type=2
+dummy-default-threshold=true
+icon-style-type=0
+indicator-position-max=0
+polkit-status='installed'
+show-battery-panel2=false

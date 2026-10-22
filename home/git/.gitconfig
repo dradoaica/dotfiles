@@ -1,0 +1,13 @@
+[cola]
+	startupmode = folder
+	boldheaders = false
+	theme = default
+	icontheme = default
+[user]
+	name = dradoaica
+	email = dradoaica@gmail.com
+[init]
+	defaultBranch = main
+# Machine-specific or private settings (signing key, work email); not tracked
+[include]
+	path = ~/.gitconfig.local

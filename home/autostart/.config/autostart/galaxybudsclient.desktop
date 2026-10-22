@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=bash -c "sleep 5 && flatpak run me.timschneeberger.GalaxyBudsClient /StartMinimized"
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Galaxy Buds Client
+Comment=Start Galaxy Buds Client Minimized
