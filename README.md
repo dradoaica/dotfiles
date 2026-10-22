@@ -139,6 +139,8 @@ Battery Health Charging.
 
 ### Day to Day
 
+- **Update everything** with `make update`: APT, Snap and Flatpak packages, Homebrew, pipx tools, your GNOME extensions,
+  the Rust toolchain and Node 24 (keeping your global npm packages).
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -171,9 +173,13 @@ Keep anything private or specific to one machine out of the repository:
 
 ### Testing
 
-[CI](.github/workflows/ci.yml) runs on every push. It runs shellcheck on the scripts, links the dotfiles into a fresh
-home directory, checks that the existing files were backed up and that a second run changes nothing, starts an
-interactive shell with the linked `.bashrc`, then unlinks everything again. Run the same lint locally with `make lint`.
+[CI](.github/workflows/ci.yml) runs on every push, in an Ubuntu 26.04 container:
+
+- **lint**: runs shellcheck on the scripts. Run the same check locally with `make lint`.
+- **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up and that a
+  second run changes nothing, starts an interactive shell with the linked `.bashrc`, then unlinks everything again.
+- **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
+  up in a tracked config file is caught before it stays public.
 
 ## Post-Install
 

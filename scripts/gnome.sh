@@ -2,6 +2,7 @@
 # Save or restore GNOME extensions (gnome/extensions.txt) and selected settings (gnome/dconf/).
 # Usage: gnome.sh dump         save the installed extensions and current settings into the repository
 #        gnome.sh extensions   install the extensions listed in gnome/extensions.txt
+#        gnome.sh update       update the user-installed extensions
 #        gnome.sh load         apply the saved settings to this session
 
 set -euo pipefail
@@ -47,20 +48,33 @@ dump() {
   fi
 }
 
-extensions() {
+# Print the path to gext (gnome-extensions-cli), installing it with pipx if needed
+gext_bin() {
   if ! command -v pipx > /dev/null; then
     sudo apt-get install -y pipx
   fi
   local gext
   gext="$(pipx environment --value PIPX_BIN_DIR)/gext"
   if [ ! -x "$gext" ]; then
-    pipx install gnome-extensions-cli --system-site-packages
+    pipx install gnome-extensions-cli --system-site-packages >&2
   fi
-  local uuids
+  echo "$gext"
+}
+
+extensions() {
+  local gext uuids
+  gext="$(gext_bin)"
   mapfile -t uuids < <(grep -vE '^[[:space:]]*(#|$)' "$EXTENSIONS_FILE")
   # The filesystem backend installs without a confirmation dialog per extension;
   # new extensions become active after the next login
   "$gext" --filesystem install "${uuids[@]}"
+}
+
+update() {
+  local gext
+  gext="$(gext_bin)"
+  # Only the user-installed extensions; the system ones come from apt
+  "$gext" --filesystem update --user --yes
 }
 
 load() {
@@ -78,6 +92,7 @@ load() {
 case "${1:-}" in
   dump) dump ;;
   extensions) extensions ;;
+  update) update ;;
   load) load ;;
-  *) echo "Usage: $(basename "$0") dump|extensions|load" >&2; exit 1 ;;
+  *) echo "Usage: $(basename "$0") dump|extensions|update|load" >&2; exit 1 ;;
 esac

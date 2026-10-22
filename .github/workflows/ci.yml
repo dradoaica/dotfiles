@@ -4,20 +4,29 @@ on:
   push:
   pull_request:
 
+defaults:
+  run:
+    shell: bash
+
+# Lint and link run in a container of the release this repository targets, not on the runner's own Ubuntu
 jobs:
   lint:
     runs-on: ubuntu-latest
+    container: ubuntu:26.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: apt-get update && apt-get install -y shellcheck
       - name: Shellcheck
         run: shellcheck scripts/*.sh home/bash/.bashrc.d/*.sh
 
   link:
     runs-on: ubuntu-latest
+    container: ubuntu:26.04
     steps:
       - uses: actions/checkout@v4
       - name: Install Stow
-        run: sudo apt-get update && sudo apt-get install -y stow
+        run: apt-get update && apt-get install -y stow
       - name: Link into a fresh home directory
         run: |
           export HOME="$RUNNER_TEMP/home"
@@ -39,3 +48,15 @@ jobs:
           bash scripts/link.sh --unlink
           if bash scripts/link.sh --check; then exit 1; fi
           test ! -e "$HOME/.config/git/config"
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Scan the whole history, not just the latest commit
+          fetch-depth: 0
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
