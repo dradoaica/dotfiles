@@ -10,4 +10,4 @@
 	defaultBranch = main
 # Machine-specific or private settings (signing key, work email); not tracked
 [include]
-	path = ~/.gitconfig.local
+	path = ~/.config/git/config.local

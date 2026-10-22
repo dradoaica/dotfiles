@@ -24,7 +24,7 @@ aware that it:
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
 - Adds third-party APT sources: six PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis, Solaar) and the
   Google Chrome, Docker and Microsoft repositories.
-- Replaces `~/.bashrc`, `~/.profile`, `~/.gitconfig` and the other files under [`home/`](home) with symlinks into this
+- Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
   overwrites the GNOME settings saved in [`gnome/dconf/`](gnome/dconf) (fonts, theme, shortcuts, extension settings).
@@ -126,7 +126,7 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 |-------------|------------------------------------------------------------------------------|
 | `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client |
 | `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm)                    |
-| `git`       | `~/.gitconfig`, `~/.config/git/ignore`                                       |
+| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                               |
 | `k9s`       | `~/.config/k9s/` aliases and plugins                                         |
 | `ulauncher` | `~/.config/ulauncher/settings.json`                                          |
 | `vscode`    | `~/.config/Code/User/settings.json`                                          |
@@ -166,7 +166,8 @@ Keep anything private or specific to one machine out of the repository:
 
 - **Shell**: put it in an extra file in `~/.bashrc.d/`, for example `~/.bashrc.d/local.sh`. Every `*.sh` file there is
   loaded, but only the ones in `home/bash/.bashrc.d/` are tracked.
-- **Git**: put it in `~/.gitconfig.local` (signing key, work email). `.gitconfig` includes it, and it is not tracked.
+- **Git**: put it in `~/.config/git/config.local` (signing key, work email). The Git config includes it, and it is not
+  tracked.
 
 ### Testing
 

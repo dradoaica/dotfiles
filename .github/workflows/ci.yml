@@ -38,4 +38,4 @@ jobs:
           export HOME="$RUNNER_TEMP/home"
           bash scripts/link.sh --unlink
           if bash scripts/link.sh --check; then exit 1; fi
-          test ! -e "$HOME/.gitconfig"
+          test ! -e "$HOME/.config/git/config"
