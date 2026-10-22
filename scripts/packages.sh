@@ -21,11 +21,14 @@ sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
+sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 curl -fsSL "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
 sudo dpkg -i /tmp/packages-microsoft-prod.deb
 rm -f /tmp/packages-microsoft-prod.deb
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
 
 # Update/Upgrade
 sudo apt-get update && sudo apt-get upgrade -y
@@ -49,7 +52,7 @@ sudo apt-get install -y phinger-cursor-theme
 sudo apt-get install -y breeze-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
-sudo apt-get install -y ca-certificates gnupg2 pass build-essential git file jq procps net-tools libfuse2t64 pipx
+sudo apt-get install -y ca-certificates gnupg2 pass build-essential git gh file jq procps net-tools libfuse2t64 pipx
 # Install and set up Python
 sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl

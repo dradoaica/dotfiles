@@ -23,7 +23,7 @@ aware that it:
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
 - Adds third-party APT sources: six PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis, Solaar) and the
-  Google Chrome, Docker and Microsoft repositories.
+  Google Chrome, Docker, GitHub CLI and Microsoft repositories.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
@@ -79,7 +79,7 @@ work through [Post-Install](#post-install).
     - Languages: Python, Go, Rust (via rustup only), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby, Node.js 24 (via
       nvm).
     - IDEs: VS Code, JetBrains Toolbox.
-    - Git GUI: GitKraken.
+    - Git: GitKraken, GitHub CLI (`gh`).
     - Containers and Kubernetes: Docker Engine, Docker Desktop, Multipass, MicroK8s, kubectl, Helm, helm-docs, K9s.
     - Other: Postman.
 - **Applications**:
@@ -177,6 +177,15 @@ interactive shell with the linked `.bashrc`, then unlinks everything again. Run 
 
 ## Post-Install
 
+### GitHub CLI
+
+Sign in once, then let Git use the same credentials, so `git push` over HTTPS works without a separate token:
+
+```bash
+gh auth login
+gh auth setup-git
+```
+
 ### Ulauncher Hotkey on Wayland
 
 On Wayland, Ulauncher does not receive its hotkey while some windows are focused (e.g. Terminal or Settings), so it
@@ -256,9 +265,9 @@ Try these in order. For the first two, edit `/etc/default/grub` (e.g. `sudo nano
 ## Optional Apps
 
 These are distributed as `.deb` files on GitHub releases and are not installed by the script. The commands below
-use the [GitHub CLI](https://cli.github.com/) (`gh`) to download the latest release; you can also download the file
-from the linked releases page. These packages come from third parties: check the project and any published checksums
-before installing.
+use the [GitHub CLI](https://cli.github.com/) (`gh`), which the script installs, to download the latest release. `gh`
+needs you to [sign in](#github-cli) once first. You can also download the file from the linked releases page. These
+packages come from third parties: check the project and any published checksums before installing.
 
 ### OpenLogi
 
