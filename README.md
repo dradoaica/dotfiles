@@ -81,7 +81,7 @@ work through [Post-Install](#post-install).
     - IDEs: VS Code, JetBrains Toolbox.
     - Git: GitKraken, GitHub CLI (`gh`).
     - Containers and Kubernetes: Docker Engine, Docker Desktop, Multipass, MicroK8s, kubectl, Helm, helm-docs, K9s.
-    - Other: Postman.
+    - Other: Postman, Claude Code.
 - **Applications**:
     - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, Adobe Acrobat Reader
       (`acrordrdc` snap, runs via WINE).

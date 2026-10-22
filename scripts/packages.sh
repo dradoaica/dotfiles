@@ -10,6 +10,8 @@ sudo apt-get install -y wget curl software-properties-common stow
 
 # Add APT repositories
 source /etc/os-release
+# Steam needs 32-bit libraries
+sudo dpkg --add-architecture i386
 sudo add-apt-repository -y ppa:agornostal/ulauncher
 sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
@@ -52,7 +54,7 @@ sudo apt-get install -y phinger-cursor-theme
 sudo apt-get install -y breeze-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
-sudo apt-get install -y ca-certificates gnupg2 pass build-essential git gh file jq procps net-tools libfuse2t64 pipx
+sudo apt-get install -y ca-certificates gnupg2 pass build-essential git gh file jq procps net-tools libfuse2t64 pipx shellcheck
 # Install and set up Python
 sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl
@@ -72,7 +74,7 @@ sudo apt-get install -y dotnet-sdk-10.0
 # Install and set up Java
 sudo apt-get install -y default-jdk
 # Install and set up PHP
-sudo apt-get install -y php php-cli php-common php-curl php-json php-mbstring php-xml php-zip php-fileinfo
+sudo apt-get install -y php php-cli php-common php-curl php-mbstring php-xml php-zip
 # Install and set up Ruby
 sudo apt-get install -y ruby-full
 # Install and set up nvm
@@ -81,8 +83,9 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | PROFI
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-nvm install 24.21.0
-nvm use 24.21.0
+# Track the latest Node 24 and make it the default for new shells
+nvm install 24
+nvm alias default 24
 # Install and set up Postman
 sudo snap install postman
 # Install and set up Docker Desktop
