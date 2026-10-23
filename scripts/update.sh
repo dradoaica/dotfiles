@@ -11,13 +11,20 @@ echo "== APT"
 sudo apt-get update
 sudo apt-get upgrade -y
 sudo apt-get autoremove -y
+sudo apt-get autoclean -y
 
 echo "== Snap"
 sudo snap refresh
+# Keep two revisions of each snap and remove the disabled older ones
+sudo snap set system refresh.retain=2
+snap list --all | awk '/disabled/{print $1, $3}' | while IFS=' ' read -r snap rev; do
+  sudo snap remove --revision="$rev" "$snap"
+done
 
 echo "== Flatpak"
 sudo flatpak update -y
 sudo flatpak uninstall --unused -y
+sudo flatpak repair
 
 if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
   echo "== Homebrew"
