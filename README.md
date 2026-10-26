@@ -28,9 +28,11 @@ aware that it:
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
   overwrites the GNOME settings saved in [`gnome/dconf/`](gnome/dconf) (fonts, theme, shortcuts, extension settings).
-- Adds your user to the `microk8s` group and writes `~/.kube/config`.
+- Adds your user to the `microk8s` group and writes `~/.kube/config`, then stops MicroK8s so it does not run in the
+  background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
 - Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login. Docker
-  Engine is installed too, but its socket needs `sudo`.
+  Engine is installed too, but disabled, since Docker Desktop runs its own engine. Start it with
+  `sudo systemctl start docker` if you need it.
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
   can store credentials. Replace it with a passphrase-protected key if that matters to you.
@@ -147,7 +149,7 @@ Panel, Burn My Windows, Tiling Shell, Bing Wallpaper and Battery Health Charging
   reboots, so reboot yourself if it asks), Docker Desktop, Homebrew, pipx tools, your GNOME extensions, the Rust
   toolchain, nvm and Node 24 (keeping your global npm packages). It then removes unused packages and old snap
   revisions, the same cleanup the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any
-  dotfile that is no longer linked.
+  dotfile that is no longer linked. A step that fails does not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 

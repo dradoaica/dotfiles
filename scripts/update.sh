@@ -1,32 +1,37 @@
 #!/bin/bash
 # Update everything the installer set up: system packages, firmware, Docker Desktop, Homebrew,
 # pipx tools, GNOME extensions, the Rust toolchain, nvm and Node 24.
+# Every step runs even if an earlier one failed; the failed steps are listed at the end.
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "== APT"
-sudo apt-get update
-sudo apt-get upgrade -y
+apt_packages() {
+  sudo apt-get update
+  sudo apt-get upgrade -y
+}
 
-echo "== Snap"
-sudo snap refresh
+snap_packages() {
+  sudo snap refresh
+}
 
-echo "== Flatpak"
-sudo flatpak update -y
+flatpak_packages() {
+  sudo flatpak update -y
+}
 
-if command -v fwupdmgr > /dev/null; then
-  echo "== Firmware"
+firmware() {
+  command -v fwupdmgr > /dev/null || { echo "fwupdmgr is not installed, skipping"; return; }
   sudo fwupdmgr refresh --force
   # Exit code 2 means there was nothing to update; never reboot from here
   sudo fwupdmgr update --assume-yes --no-reboot-check || [ $? -eq 2 ]
-fi
+}
 
 # Docker Desktop is installed from a downloaded .deb, not a repository, so APT never upgrades it
-if dpkg-query -W docker-desktop > /dev/null 2>&1; then
-  echo "== Docker Desktop"
+docker_desktop() {
+  dpkg-query -W docker-desktop > /dev/null 2>&1 || { echo "Docker Desktop is not installed, skipping"; return; }
+  local installed_build latest_build
   # The installed version ends in the build number, e.g. 4.89.0-238018
   installed_build="$(dpkg-query -W -f='${Version}' docker-desktop)"
   installed_build="${installed_build##*-}"
@@ -40,35 +45,39 @@ if dpkg-query -W docker-desktop > /dev/null 2>&1; then
   else
     echo "Docker Desktop is up to date (build $installed_build)"
   fi
-fi
+}
 
-for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
-  if [ -x "$brew" ]; then
-    echo "== Homebrew"
-    eval "$("$brew" shellenv)"
-    brew update
-    brew upgrade
-    brew cleanup
-    break
-  fi
-done
+homebrew() {
+  local brew
+  for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
+    if [ -x "$brew" ]; then
+      eval "$("$brew" shellenv)"
+      brew update
+      brew upgrade
+      brew cleanup
+      return
+    fi
+  done
+  echo "Homebrew is not installed, skipping"
+}
 
-if command -v pipx > /dev/null; then
-  echo "== pipx"
+pipx_tools() {
+  command -v pipx > /dev/null || { echo "pipx is not installed, skipping"; return; }
   pipx upgrade-all
-fi
+}
 
-echo "== GNOME extensions"
-bash "$SCRIPT_DIR/gnome.sh" update
+gnome_extensions() {
+  bash "$SCRIPT_DIR/gnome.sh" update
+}
 
-if command -v rustup > /dev/null; then
-  echo "== Rust"
+rust() {
+  command -v rustup > /dev/null || { echo "rustup is not installed, skipping"; return; }
   rustup update
-fi
+}
 
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  echo "== Node"
+node_js() {
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] || { echo "nvm is not installed, skipping"; return; }
   # nvm is a Git checkout; move it to its newest release tag
   git -C "$NVM_DIR" fetch --tags --quiet
   git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet \
@@ -79,14 +88,49 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   # Install the latest Node 24, carrying over the global npm packages
   nvm install 24 --reinstall-packages-from=default
   nvm alias default 24
-  set -u
-fi
+}
 
-echo "== Cleanup"
-bash "$SCRIPT_DIR/cleanup.sh"
+cleanup() {
+  bash "$SCRIPT_DIR/cleanup.sh"
+}
 
 # Report dotfiles that an update replaced with a regular file
-echo "== Dotfiles"
-bash "$SCRIPT_DIR/link.sh" --check || true
+dotfiles() {
+  bash "$SCRIPT_DIR/link.sh" --check
+}
 
+failed=()
+# Run a step in a subshell with `set -e` in force (it would be ignored if the step ran
+# as an `if` or `||` condition), and remember it if it fails instead of stopping
+step() {
+  local name="$1" status
+  shift
+  echo "== $name"
+  set +e
+  (set -e; "$@")
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ]; then
+    echo "!! $name failed (exit code $status)" >&2
+    failed+=("$name")
+  fi
+}
+
+step APT apt_packages
+step Snap snap_packages
+step Flatpak flatpak_packages
+step Firmware firmware
+step "Docker Desktop" docker_desktop
+step Homebrew homebrew
+step pipx pipx_tools
+step "GNOME extensions" gnome_extensions
+step Rust rust
+step Node node_js
+step Cleanup cleanup
+step Dotfiles dotfiles
+
+if [ "${#failed[@]}" -gt 0 ]; then
+  echo "Done, but these steps failed: ${failed[*]}. Scroll up for their errors." >&2
+  exit 1
+fi
 echo "Done. Log out and back in if GNOME extensions were updated."

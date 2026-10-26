@@ -112,6 +112,8 @@ if ! docker context inspect desktop-linux > /dev/null 2>&1; then
 fi
 docker context use desktop-linux
 systemctl --user enable docker-desktop
+# Docker Desktop runs its own engine in a VM, so keep Docker Engine installed but stopped
+sudo systemctl disable --now docker.service docker.socket containerd.service
 if [ ! -d "$HOME/.password-store" ]; then
   GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
   if [ -z "$GPG_KEY_ID" ]; then
@@ -129,10 +131,14 @@ sudo usermod -a -G microk8s "$USER"
 mkdir -p ~/.kube
 sudo chown -R "$USER" ~/.kube
 # Group membership applies after the next login, so use sudo here instead of newgrp
+sudo microk8s start
 sudo microk8s status --wait-ready
 # The redirect runs as the user on purpose, so the file is owned by the user
 # shellcheck disable=SC2024
 sudo microk8s config > ~/.kube/config
+# Don't keep Kubernetes running in the background: `microk8s stop` also stops it starting at boot.
+# Run `microk8s start` when you need it.
+sudo microk8s stop
 # Install and set up Homebrew
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 if [ -d ~/.linuxbrew ]; then eval "$(~/.linuxbrew/bin/brew shellenv)"; fi
