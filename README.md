@@ -34,9 +34,9 @@ aware that it:
 - Adds your user to the `microk8s` group and merges the MicroK8s cluster into `~/.kube/config` (other clusters and
   the current context are kept; the file is made readable only by you), then stops MicroK8s so it does not run in the
   background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
-- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login. Docker
-  Engine is installed too, but disabled, since Docker Desktop runs its own engine. Start it with
-  `sudo systemctl start docker` if you need it.
+- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login,
+  minimised to the tray (the Dashboard does not open). Docker Engine is installed too, but disabled, since Docker
+  Desktop runs its own engine. Start it with `sudo systemctl start docker` if you need it.
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
   can store credentials. Replace it with a passphrase-protected key if that matters to you.

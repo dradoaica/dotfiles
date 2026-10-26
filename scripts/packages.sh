@@ -112,6 +112,13 @@ if ! docker context inspect desktop-linux > /dev/null 2>&1; then
 fi
 docker context use desktop-linux
 systemctl --user enable docker-desktop
+# Start in the tray without opening the Dashboard, and keep Docker Desktop's own "start when you sign in"
+# setting in line with the systemd unit enabled above
+docker_settings="$HOME/.docker/desktop/settings-store.json"
+mkdir -p "$(dirname "$docker_settings")"
+[ -s "$docker_settings" ] || echo '{}' > "$docker_settings"
+jq '.AutoStart = true | .OpenUIOnStartupDisabled = true' "$docker_settings" > "$docker_settings.new"
+mv "$docker_settings.new" "$docker_settings"
 # Docker Desktop runs its own engine in a VM, so keep Docker Engine installed but stopped
 sudo systemctl disable --now docker.service docker.socket containerd.service
 if [ ! -d "$HOME/.password-store" ]; then
