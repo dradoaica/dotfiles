@@ -1,6 +1,6 @@
 #!/bin/bash
-# Update everything the installer set up: system packages, Docker Desktop, Homebrew,
-# pipx tools, GNOME extensions, the Rust toolchain and Node 24.
+# Update everything the installer set up: system packages, firmware, Docker Desktop, Homebrew,
+# pipx tools, GNOME extensions, the Rust toolchain, nvm and Node 24.
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -16,6 +16,13 @@ sudo snap refresh
 
 echo "== Flatpak"
 sudo flatpak update -y
+
+if command -v fwupdmgr > /dev/null; then
+  echo "== Firmware"
+  sudo fwupdmgr refresh --force
+  # Exit code 2 means there was nothing to update; never reboot from here
+  sudo fwupdmgr update --assume-yes --no-reboot-check || [ $? -eq 2 ]
+fi
 
 # Docker Desktop is installed from a downloaded .deb, not a repository, so APT never upgrades it
 if dpkg-query -W docker-desktop > /dev/null 2>&1; then
@@ -62,6 +69,10 @@ fi
 export NVM_DIR="$HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   echo "== Node"
+  # nvm is a Git checkout; move it to its newest release tag
+  git -C "$NVM_DIR" fetch --tags --quiet
+  git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet \
+    "$(git -C "$NVM_DIR" describe --abbrev=0 --tags --match 'v[0-9]*' "$(git -C "$NVM_DIR" rev-list --tags --max-count=1)")"
   # nvm is not written for `set -u`
   set +u
   . "$NVM_DIR/nvm.sh"
@@ -73,5 +84,9 @@ fi
 
 echo "== Cleanup"
 bash "$SCRIPT_DIR/cleanup.sh"
+
+# Report dotfiles that an update replaced with a regular file
+echo "== Dotfiles"
+bash "$SCRIPT_DIR/link.sh" --check || true
 
 echo "Done. Log out and back in if GNOME extensions were updated."

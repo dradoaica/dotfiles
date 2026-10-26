@@ -29,6 +29,9 @@ aware that it:
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
   overwrites the GNOME settings saved in [`gnome/dconf/`](gnome/dconf) (fonts, theme, shortcuts, extension settings).
 - Adds your user to the `microk8s` group and writes `~/.kube/config`.
+- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login. Docker
+  Engine is installed too, but its socket needs `sudo`.
+- Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
   can store credentials. Replace it with a passphrase-protected key if that matters to you.
 
@@ -134,14 +137,16 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
 [`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard shortcuts, window manager, mouse and touchpad,
-the enabled extensions and the settings of ArcMenu, Dash to Panel, Burn My Windows, Tiling Shell, Bing Wallpaper and
-Battery Health Charging.
+the enabled extensions, the Files, Text Editor and Ptyxis (terminal) preferences, and the settings of ArcMenu, Dash to
+Panel, Burn My Windows, Tiling Shell, Bing Wallpaper and Battery Health Charging.
 
 ### Day to Day
 
-- **Update everything** with `make update`: APT, Snap and Flatpak packages, Docker Desktop, Homebrew, pipx tools, your
-  GNOME extensions, the Rust toolchain and Node 24 (keeping your global npm packages). It then removes unused packages
-  and old snap revisions, the same cleanup the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)).
+- **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never
+  reboots, so reboot yourself if it asks), Docker Desktop, Homebrew, pipx tools, your GNOME extensions, the Rust
+  toolchain, nvm and Node 24 (keeping your global npm packages). It then removes unused packages and old snap
+  revisions, the same cleanup the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any
+  dotfile that is no longer linked.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -177,11 +182,14 @@ Keep anything private or specific to one machine out of the repository:
 
 [CI](.github/workflows/ci.yml) runs on every push, in an Ubuntu 26.04 container:
 
-- **lint**: runs shellcheck on the scripts. Run the same check locally with `make lint`.
+- **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up and that a
   second run changes nothing, starts an interactive shell with the linked `.bashrc`, then unlinks everything again.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
   up in a tracked config file is caught before it stays public.
+
+[Dependabot](.github/dependabot.yml) opens a pull request each month when the GitHub Actions used here have new
+versions.
 
 ## Post-Install
 

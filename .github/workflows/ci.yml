@@ -18,7 +18,7 @@ jobs:
       - name: Install shellcheck
         run: apt-get update && apt-get install -y shellcheck
       - name: Shellcheck
-        run: shellcheck scripts/*.sh home/bash/.bashrc.d/*.sh
+        run: shellcheck scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile
 
   link:
     runs-on: ubuntu-latest

@@ -1,0 +1,7 @@
+[/]
+click-policy='double'
+default-folder-viewer='list-view'
+search-filter-time-type='last_modified'
+show-create-link=true
+show-delete-permanently=true
+show-image-thumbnails='local-only'

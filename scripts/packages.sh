@@ -31,7 +31,10 @@ sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 curl -fsSL "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
 sudo dpkg -i /tmp/packages-microsoft-prod.deb
 rm -f /tmp/packages-microsoft-prod.deb
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+# The same file the Chrome package keeps up to date (it migrates an older google-chrome.list into it)
+sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+printf '%s\n' "Types: deb" "URIs: https://dl.google.com/linux/chrome-stable/deb/" "Suites: stable" "Components: main" \
+  "Architectures: amd64" "Signed-By: /usr/share/keyrings/google-chrome.gpg" | sudo tee /etc/apt/sources.list.d/google-chrome.sources
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
 
@@ -93,9 +96,19 @@ nvm alias default 24
 sudo snap install postman
 # Install and set up Docker Desktop
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-curl -fL https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb -o /tmp/docker-desktop-amd64.deb
-sudo apt-get install -y /tmp/docker-desktop-amd64.deb
-rm -f /tmp/docker-desktop-amd64.deb
+# Downloaded only once; update.sh installs newer builds
+if ! dpkg-query -W docker-desktop > /dev/null 2>&1; then
+  curl -fL https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb -o /tmp/docker-desktop-amd64.deb
+  sudo apt-get install -y /tmp/docker-desktop-amd64.deb
+  rm -f /tmp/docker-desktop-amd64.deb
+fi
+# Send docker commands to Docker Desktop rather than to Docker Engine's root-owned socket,
+# and start Docker Desktop at login so that context always answers
+if ! docker context inspect desktop-linux > /dev/null 2>&1; then
+  docker context create desktop-linux --description "Docker Desktop" --docker "host=unix://$HOME/.docker/desktop/docker.sock"
+fi
+docker context use desktop-linux
+systemctl --user enable docker-desktop
 if [ ! -d "$HOME/.password-store" ]; then
   GPG_KEY_ID=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
   if [ -z "$GPG_KEY_ID" ]; then
@@ -132,9 +145,11 @@ fi
 sudo snap install gitkraken --classic
 # Install and set up VS Code
 sudo snap install code --classic
-# Install JetBrains Toolbox
-JETBRAINS_TOOLBOX_URL=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
-if [ -n "$JETBRAINS_TOOLBOX_URL" ] && [ "$JETBRAINS_TOOLBOX_URL" != "null" ]; then
+# Install JetBrains Toolbox (only once: it updates itself)
+if [ ! -x /opt/jetbrains-toolbox/bin/jetbrains-toolbox ]; then
+  JETBRAINS_TOOLBOX_URL=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
+fi
+if [ -n "${JETBRAINS_TOOLBOX_URL:-}" ] && [ "$JETBRAINS_TOOLBOX_URL" != "null" ]; then
   sudo mkdir -p /opt/jetbrains-toolbox
   curl -fL "$JETBRAINS_TOOLBOX_URL" -o /tmp/jetbrains-toolbox.tar.gz
   sudo tar -xzf /tmp/jetbrains-toolbox.tar.gz -C /opt/jetbrains-toolbox --strip-components=1
@@ -148,6 +163,8 @@ fi
 
 # Install applications
 sudo apt-get install -y clamav clamtk clamav-daemon
+# Keep the virus definitions the daemon scans with up to date
+sudo systemctl enable --now clamav-freshclam
 sudo apt-get install -y deja-dup
 sudo apt-get install -y file-roller
 sudo apt-get install -y gnome-shell-extensions

@@ -29,10 +29,13 @@ declare -A DCONF_PATHS=(
   [extension-burn-my-windows]=/org/gnome/shell/extensions/burn-my-windows/
   [extension-dash-to-panel]=/org/gnome/shell/extensions/dash-to-panel/
   [extension-tilingshell]=/org/gnome/shell/extensions/tilingshell/
+  [nautilus]=/org/gnome/nautilus/preferences/
+  [ptyxis]=/org/gnome/Ptyxis/
+  [text-editor]=/org/gnome/TextEditor/
 )
 
 # Keys that hold runtime state or machine-specific paths rather than preferences
-VOLATILE_KEYS='^(active-profile|bing-json|last-extension-version|last-prefs-version|numlock-state|prefs-open-count|selected-image|state)='
+VOLATILE_KEYS='^(active-profile|bing-json|last-extension-version|last-prefs-version|last-save-directory|migrated-gtk-settings|numlock-state|prefs-open-count|selected-image|state)='
 
 dump() {
   mkdir -p "$DCONF_DIR"

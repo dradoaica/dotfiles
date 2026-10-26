@@ -1,7 +1,7 @@
 # Shortcuts for the scripts in scripts/. Run `make` to list them.
 
 SHELL := /bin/bash
-SCRIPTS := scripts/*.sh home/bash/.bashrc.d/*.sh
+SCRIPTS := scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile
 
 .DEFAULT_GOAL := help
 .PHONY: help install update packages link unlink check extensions load dump lint
