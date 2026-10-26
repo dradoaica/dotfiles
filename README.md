@@ -22,10 +22,10 @@ aware that it:
 
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
-- Installs balenaEtcher and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
+- Installs balenaEtcher, OpenLogi and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
   ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
   publishes for it.
-- Adds third-party APT sources: six PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis, Solaar) and the
+- Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
   Google Chrome, Docker, GitHub CLI and Microsoft repositories.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
@@ -100,8 +100,8 @@ work through [Post-Install](#post-install).
     - Touchpad: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
       speed (`wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30`), from the next login.
     - Security: ClamAV, ClamTK.
-    - Hardware: Solaar (Logitech; skipped if [OpenLogi](#openlogi) is installed), OpenRazer and Polychromatic
-      (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
+    - Hardware: [OpenLogi](https://github.com/AprilNEA/OpenLogi) (Logitech; replaces Solaar, which the installer removes
+      if it finds it), OpenRazer and Polychromatic (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
     - Games: GNOME Chess, Steam.
 
 ### GNOME Extensions
@@ -165,9 +165,9 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 ### Day to Day
 
 - **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
-  so reboot yourself if it asks), Docker Desktop, balenaEtcher and Wayland Scroll Factor, Homebrew, pipx tools, your
-  GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages). It then removes unused
-  packages and old snap revisions, the same cleanup the installer ends with
+  so reboot yourself if it asks), Docker Desktop, balenaEtcher, OpenLogi and Wayland Scroll Factor, Homebrew, pipx
+  tools, your GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages). It then removes
+  unused packages and old snap revisions, the same cleanup the installer ends with
   ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
   not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
@@ -308,24 +308,6 @@ These are distributed as `.deb` files on GitHub releases and are not installed b
 use the [GitHub CLI](https://cli.github.com/) (`gh`), which the script installs, to download the latest release. `gh`
 needs you to [sign in](#github-cli) once first. You can also download the file from the linked releases page. These
 packages come from third parties: check the project and any published checksums before installing.
-
-### OpenLogi
-
-Open-source alternative to Solaar for Logitech devices.
-[Releases](https://github.com/AprilNEA/OpenLogi/releases/latest).
-
-```bash
-gh release download -R AprilNEA/OpenLogi --pattern '*linux-amd64.deb' -D /tmp/openlogi
-sudo apt-get install -y /tmp/openlogi/*.deb
-```
-
-Both control the same devices, so remove Solaar and its PPA afterwards. `packages.sh` skips them while OpenLogi is
-installed:
-
-```bash
-sudo apt-get purge -y solaar
-sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
-```
 
 ### ArtCraft Launcher
 

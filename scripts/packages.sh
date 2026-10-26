@@ -20,9 +20,9 @@ sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
 sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
 sudo add-apt-repository -y ppa:s4solutionsllc/nexis
-# Solaar and OpenLogi (an optional app, see the README) both drive Logitech devices; keep only OpenLogi if it is installed
-if ! dpkg-query -W openlogi > /dev/null 2>&1; then
-  sudo add-apt-repository -y ppa:solaar-unifying/stable
+# OpenLogi replaces Solaar for Logitech devices; remove Solaar's PPA from machines set up before
+if compgen -G "/etc/apt/sources.list.d/solaar-unifying-*" > /dev/null; then
+  sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
 fi
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
@@ -185,9 +185,6 @@ sudo apt-get install -y nexis
 sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
 sudo apt-get install -y qbittorrent
-if ! dpkg-query -W openlogi > /dev/null 2>&1; then
-  sudo apt-get install -y solaar
-fi
 sudo apt-get install -y steam
 sudo apt-get install -y ulauncher
 sudo apt-get install -y vlc
@@ -197,7 +194,11 @@ sudo snap install gimp
 sudo snap install gnome-chess
 sudo flatpak install -y flathub me.timschneeberger.GalaxyBudsClient
 sudo flatpak install -y flathub com.github.dail8859.NotepadNext
-# balenaEtcher and Wayland Scroll Factor, from their GitHub releases
+# OpenLogi replaces Solaar, which both drive the same Logitech devices
+if dpkg -s solaar > /dev/null 2>&1; then
+  sudo apt-get purge -y solaar
+fi
+# balenaEtcher, OpenLogi and Wayland Scroll Factor, from their GitHub releases
 bash "$SCRIPT_DIR/github-debs.sh"
 # Slow down touchpad scrolling on Wayland; takes effect after the next login
 wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30 --pinch-zoom 1.00 --pinch-rotate 1.00

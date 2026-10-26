@@ -7,6 +7,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 # <owner/repo> <package> <regex matching the release asset>
 PACKAGES=(
+  "AprilNEA/OpenLogi openlogi ^openlogi-v.*-linux-amd64\.deb$"
   "balena-io/etcher balena-etcher ^balena-etcher_.*_amd64\.deb$"
   "daniel-g-carrasco/wayland-scroll-factor wayland-scroll-factor ^wayland-scroll-factor_.*_amd64\.deb$"
 )
