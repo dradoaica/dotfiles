@@ -197,6 +197,11 @@ sudo snap install gimp
 sudo snap install gnome-chess
 sudo flatpak install -y flathub me.timschneeberger.GalaxyBudsClient
 sudo flatpak install -y flathub com.github.dail8859.NotepadNext
+# balenaEtcher and Wayland Scroll Factor, from their GitHub releases
+bash "$SCRIPT_DIR/github-debs.sh"
+# Slow down touchpad scrolling on Wayland; takes effect after the next login
+wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30 --pinch-zoom 1.00 --pinch-rotate 1.00
+wsf enable
 
 # Cleanup
 bash "$SCRIPT_DIR/cleanup.sh"

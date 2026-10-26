@@ -22,6 +22,9 @@ aware that it:
 
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
+- Installs balenaEtcher and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
+  ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
+  publishes for it.
 - Adds third-party APT sources: six PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis, Solaar) and the
   Google Chrome, Docker, GitHub CLI and Microsoft repositories.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
@@ -92,7 +95,10 @@ work through [Post-Install](#post-install).
     - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, Adobe Acrobat Reader
       (`acrordrdc` snap, runs via WINE).
     - Graphics: GIMP, Ksnip.
-    - System: GNOME Tweaks, GNOME Shell Extensions, Nexis, Ulauncher, Déjà Dup, File Roller.
+    - System: GNOME Tweaks, GNOME Shell Extensions, Nexis, Ulauncher, Déjà Dup, File Roller,
+      [balenaEtcher](https://github.com/balena-io/etcher) (writes OS images to USB drives and SD cards).
+    - Touchpad: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
+      speed (`wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30`), from the next login.
     - Security: ClamAV, ClamTK.
     - Hardware: Solaar (Logitech; skipped if [OpenLogi](#openlogi) is installed), OpenRazer and Polychromatic
       (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
@@ -158,11 +164,12 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 
 ### Day to Day
 
-- **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never
-  reboots, so reboot yourself if it asks), Docker Desktop, Homebrew, pipx tools, your GNOME extensions, the Rust
-  toolchain, nvm and Node 24 (keeping your global npm packages). It then removes unused packages and old snap
-  revisions, the same cleanup the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any
-  dotfile that is no longer linked. A step that fails does not stop the others; the failed ones are listed at the end.
+- **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
+  so reboot yourself if it asks), Docker Desktop, balenaEtcher and Wayland Scroll Factor, Homebrew, pipx tools, your
+  GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages). It then removes unused
+  packages and old snap revisions, the same cleanup the installer ends with
+  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
+  not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -318,33 +325,6 @@ installed:
 ```bash
 sudo apt-get purge -y solaar
 sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
-```
-
-### Wayland Scroll Factor
-
-Adjusts touchpad scroll and gesture speed on Wayland.
-[Releases](https://github.com/daniel-g-carrasco/wayland-scroll-factor/releases/latest).
-
-```bash
-gh release download -R daniel-g-carrasco/wayland-scroll-factor --pattern 'wayland-scroll-factor_*_amd64.deb' -D /tmp/wsf
-sudo apt-get install -y /tmp/wsf/*.deb
-
-wsf set \
-  --scroll-vertical 0.30 \
-  --scroll-horizontal 0.30 \
-  --pinch-zoom 1.00 \
-  --pinch-rotate 1.00
-wsf enable
-```
-
-### balenaEtcher
-
-Writes OS images to USB drives and SD cards.
-[Releases](https://github.com/balena-io/etcher/releases/latest).
-
-```bash
-gh release download -R balena-io/etcher --pattern '*_amd64.deb' -D /tmp/etcher
-sudo apt-get install -y /tmp/etcher/*.deb
 ```
 
 ### ArtCraft Launcher

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Update everything the installer set up: system packages, firmware, Docker Desktop, Homebrew,
-# pipx tools, GNOME extensions, the Rust toolchain, nvm and Node 24.
+# Update everything the installer set up: system packages, firmware, Docker Desktop, the apps from
+# GitHub releases, Homebrew, pipx tools, GNOME extensions, the Rust toolchain, nvm and Node 24.
 # Every step runs even if an earlier one failed; the failed steps are listed at the end.
 
 set -euo pipefail
@@ -45,6 +45,10 @@ docker_desktop() {
   else
     echo "Docker Desktop is up to date (build $installed_build)"
   fi
+}
+
+github_debs() {
+  bash "$SCRIPT_DIR/github-debs.sh"
 }
 
 homebrew() {
@@ -121,6 +125,7 @@ step Snap snap_packages
 step Flatpak flatpak_packages
 step Firmware firmware
 step "Docker Desktop" docker_desktop
+step "GitHub releases" github_debs
 step Homebrew homebrew
 step pipx pipx_tools
 step "GNOME extensions" gnome_extensions
