@@ -136,16 +136,17 @@ Proprietary drivers ([Post-Install](#post-install)) and the [Optional Apps](#opt
 Configuration lives in [`home/`](home), one folder per program. Each folder mirrors your home directory, and
 [GNU Stow](https://www.gnu.org/software/stow/) links its files into place:
 
-| Package     | Files                                                                           |
-|-------------|---------------------------------------------------------------------------------|
-| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client    |
-| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, completions, history) |
-|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)          |
-| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)    |
-| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                  |
-| `k9s`       | `~/.config/k9s/` aliases and plugins                                            |
-| `ulauncher` | `~/.config/ulauncher/settings.json`                                             |
-| `vscode`    | `~/.config/Code/User/settings.json`                                             |
+| Package     | Files                                                                               |
+|-------------|-------------------------------------------------------------------------------------|
+| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client        |
+| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, completions, history)     |
+|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)              |
+| `docker`    | Docker Desktop service override: waits for GNOME's tray at login, so its icon shows |
+| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)        |
+| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                      |
+| `k9s`       | `~/.config/k9s/` aliases and plugins                                                |
+| `ulauncher` | `~/.config/ulauncher/settings.json`                                                 |
+| `vscode`    | `~/.config/Code/User/settings.json`                                                 |
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
