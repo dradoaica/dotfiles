@@ -1,0 +1,10 @@
+# Readline settings for bash and other programs that use readline; keep the system defaults first
+$include /etc/inputrc
+
+# Tab completion ignores case, and lists all matches on the first Tab when there are several
+set completion-ignore-case on
+set show-all-if-ambiguous on
+
+# Up and Down search the history for commands starting with what is already typed
+"\e[A": history-search-backward
+"\e[B": history-search-forward

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Set up a fresh machine: install packages, link the dotfiles, then install the GNOME extensions and apply the settings.
+# Set up a fresh machine: install packages, link the dotfiles, install the GNOME extensions, then apply the GNOME and
+# app settings.
 
 set -euo pipefail
 
@@ -9,3 +10,4 @@ bash "$SCRIPT_DIR/packages.sh"
 bash "$SCRIPT_DIR/link.sh"
 bash "$SCRIPT_DIR/gnome.sh" extensions
 bash "$SCRIPT_DIR/gnome.sh" load
+bash "$SCRIPT_DIR/apps.sh" load

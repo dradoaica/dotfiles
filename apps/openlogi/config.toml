@@ -1,0 +1,162 @@
+schema_version = 10
+selected_device = "serial:2348lz52e9j8"
+
+[app_settings]
+launch_at_login = true
+check_for_updates = false
+auto_install_updates = false
+update_prompt_seen = true
+show_in_menu_bar = true
+capture_mouse_events = true
+auto_download_assets = true
+asset_source = "automatic"
+thumbwheel_sensitivity = 14
+appearance = "system"
+theme_dark = "OpenLogi Dark"
+app_icon = "openlogi"
+smooth_scroll = false
+vertical_scroll_sensitivity = 14
+ui_scale = "normal"
+device_view_mode = "carousel"
+mouse_profile_target = "pointer"
+low_battery_notifications = true
+lock_key_notifications = true
+animate_desktop_switch = true
+
+[devices."receiver:a216ae8d0b55dd44:slot:1".bindings.GestureButton]
+Up = "MissionControl"
+Down = "ShowDesktop"
+Left = "PrevTab"
+Right = "NextTab"
+Click = "AppExpose"
+
+[devices."serial:2348lz52e9j8"]
+dpi_presets = [1200]
+dpi = 1200
+
+[devices."serial:2348lz52e9j8".identity]
+display_name = "MX Master 3S"
+codename = "MX Master 3S"
+kind = "mouse"
+
+[devices."serial:2348lz52e9j8".identity.model_info]
+entity_count = 3
+unit_id = [
+    0,
+    0,
+    0,
+    0,
+]
+model_ids = [
+    45108,
+    0,
+    0,
+]
+extended_model_id = 0
+
+[devices."serial:2348lz52e9j8".identity.model_info.transports]
+usb = false
+equad = false
+btle = true
+bluetooth = false
+
+[devices."serial:2348lz52e9j8".identity.capabilities]
+buttons = true
+pointer = true
+lighting = false
+scroll_inversion = true
+hires_wheel = true
+thumbwheel = true
+haptic_feedback = false
+haptic_panel = false
+dpi_gestures = true
+fn_lock = false
+os_layout = false
+report_rate = false
+backlight = false
+easy_switch = true
+virtual_thumbwheel = false
+pointer_scaling = false
+force_sensing = false
+disable_keys = false
+
+[devices."serial:2348lz52e9j8".links."receiver:a216ae8d0b55dd44:slot:4".capabilities]
+buttons = true
+pointer = true
+lighting = false
+scroll_inversion = true
+hires_wheel = true
+thumbwheel = true
+haptic_feedback = false
+haptic_panel = false
+dpi_gestures = true
+fn_lock = false
+os_layout = false
+report_rate = false
+backlight = false
+easy_switch = true
+virtual_thumbwheel = false
+pointer_scaling = false
+force_sensing = false
+disable_keys = false
+
+[devices."serial:2348lz52e9j8".bindings]
+MiddleClick = "MiddleClick"
+Back = "BrowserBack"
+Forward = "BrowserForward"
+DpiToggle = "ToggleSmartShift"
+
+[devices."serial:2348lz52e9j8".bindings.GestureButton ]
+Up = "LaunchpadShow"
+Down = "CaptureRegion"
+Left = "PrevTab"
+Right = "NextTab"
+Click = "ShowActionsRing"
+
+[devices."serial:2348lz52e9j8".disabled_gestures.MiddleClick]
+Up = "MissionControl"
+Down = "ShowDesktop"
+Left = "PrevTab"
+Right = "NextTab"
+Click = "MiddleClick"
+
+[devices."serial:2348lz52e9j8".disabled_gestures.Back]
+Up = "MissionControl"
+Down = "ShowDesktop"
+Left = "PrevTab"
+Right = "NextTab"
+Click = "BrowserBack"
+
+[devices."serial:2348lz52e9j8".disabled_gestures.Forward]
+Up = "MissionControl"
+Down = "ShowDesktop"
+Left = "PrevTab"
+Right = "NextTab"
+Click = "BrowserForward"
+
+[devices."serial:2348lz52e9j8".action_ring]
+enabled = true
+haptics = true
+
+[devices."serial:2348lz52e9j8".action_ring.default.slots.Bottom]
+action = "LockScreen"
+
+[devices."serial:2348lz52e9j8".action_ring.default.slots.Top]
+icon = "Settings"
+
+[devices."serial:2348lz52e9j8".action_ring.default.slots.Top.action.OpenApplication]
+path = "openlogi-desktop"
+display_name = "openlogi-desktop"
+
+[devices."serial:2348lz52e9j8".action_ring.default.slots.BottomRight]
+action = "Sleep"
+
+[devices."serial:2348lz52e9j8".action_ring.default.slots.BottomLeft]
+action = "MuteVolume"
+
+[devices."serial:2348lz52e9j8".smartshift]
+mode = "ratchet"
+auto_disengage = 10
+tunable_torque = 0
+
+[keyboard]

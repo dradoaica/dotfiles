@@ -30,11 +30,13 @@ check: ## Report dotfiles that are not linked
 extensions: ## Install the GNOME extensions in gnome/extensions.txt
 	bash scripts/gnome.sh extensions
 
-load: ## Apply the GNOME settings saved in gnome/dconf/
+load: ## Apply the GNOME settings and app settings saved in gnome/ and apps/
 	bash scripts/gnome.sh load
+	bash scripts/apps.sh load
 
-dump: ## Save the current GNOME extensions and settings into the repository
+dump: ## Save the current GNOME extensions, GNOME settings and app settings into the repository
 	bash scripts/gnome.sh dump
+	bash scripts/apps.sh dump
 
 lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)

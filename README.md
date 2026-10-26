@@ -61,12 +61,13 @@ Keep the clone where it is afterwards: the symlinks point into it.
 The installer runs these steps, which you can also run on their own. The `make` shortcuts work once `packages.sh` has
 installed `make`; run `make` on its own to list them.
 
-| Step                          | Shortcut          | What it does                                                    |
-|-------------------------------|-------------------|-----------------------------------------------------------------|
-| `scripts/packages.sh`         | `make packages`   | Adds the repositories and installs everything listed below.     |
-| `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.      |
-| `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`. |
-| `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.             |
+| Step                          | Shortcut          | What it does                                                     |
+|-------------------------------|-------------------|------------------------------------------------------------------|
+| `scripts/packages.sh`         | `make packages`   | Adds the repositories and installs everything listed below.      |
+| `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.       |
+| `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.  |
+| `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.              |
+| `scripts/apps.sh load`        | `make load`       | Applies the OpenLogi config, default apps and Helm repositories. |
 
 When it finishes, **log out and back in** so the new group membership, fonts and GNOME extensions take effect, then
 work through [Post-Install](#post-install).
@@ -132,6 +133,8 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 |-------------|---------------------------------------------------------------------------------|
 | `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client    |
 | `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, completions, history) |
+|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)          |
+| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)    |
 | `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                  |
 | `k9s`       | `~/.config/k9s/` aliases and plugins                                            |
 | `ulauncher` | `~/.config/ulauncher/settings.json`                                             |
@@ -139,9 +142,19 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
-[`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard shortcuts, window manager, mouse and touchpad,
-the enabled extensions, the Files, Text Editor and Ptyxis (terminal) preferences, and the settings of ArcMenu, Dash to
-Panel, Burn My Windows, Tiling Shell, Bing Wallpaper and Battery Health Charging.
+[`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard layouts, keyboard shortcuts, window manager,
+mouse and touchpad, power and screen blanking, sound, privacy, the first day of the week, the enabled extensions, the
+Files, Text Editor and Ptyxis (terminal) preferences, and the settings of ArcMenu, Dash to Panel, Burn My Windows,
+Tiling Shell, Bing Wallpaper and Battery Health Charging.
+
+Some app settings cannot be symlinked either, because the app rewrites the file or the file holds names that differ
+per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores them from [`apps/`](apps):
+
+- **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
+  backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
+- **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
+  are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
+- **Helm repositories**: the names and URLs from `helm repo list`, added again with `helm repo add`.
 
 ### Day to Day
 
@@ -161,8 +174,8 @@ Panel, Burn My Windows, Tiling Shell, Bing Wallpaper and Battery Health Charging
 
 - **Add a package** by creating a new folder in `home/`; `link.sh` picks up every folder.
 - **Shell additions** go in a new file in `home/bash/.bashrc.d/`, not in `.bashrc`, which stays Ubuntu's default.
-- **Save GNOME changes** made in Settings, Tweaks or extension preferences, or extensions you installed or removed, with
-  `make dump`, then review `git diff` and commit.
+- **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
+  removed, OpenLogi, default apps or Helm repositories, with `make dump`, then review `git diff` and commit.
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
   example after a program overwrote its symlink. `make link` fixes them.
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from

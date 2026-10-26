@@ -16,12 +16,18 @@ USER_EXTENSIONS_DIR="$HOME/.local/share/gnome-shell/extensions"
 
 # File name (without .dconf) -> dconf directory
 declare -A DCONF_PATHS=(
+  [desktop-calendar]=/org/gnome/desktop/calendar/
+  [desktop-input-sources]=/org/gnome/desktop/input-sources/
   [desktop-interface]=/org/gnome/desktop/interface/
   [desktop-peripherals]=/org/gnome/desktop/peripherals/
+  [desktop-privacy]=/org/gnome/desktop/privacy/
+  [desktop-session]=/org/gnome/desktop/session/
+  [desktop-sound]=/org/gnome/desktop/sound/
   [desktop-wm-keybindings]=/org/gnome/desktop/wm/keybindings/
   [desktop-wm-preferences]=/org/gnome/desktop/wm/preferences/
   [media-keys]=/org/gnome/settings-daemon/plugins/media-keys/
   [mutter]=/org/gnome/mutter/
+  [power]=/org/gnome/settings-daemon/plugins/power/
   [shell-keybindings]=/org/gnome/shell/keybindings/
   [extension-arcmenu]=/org/gnome/shell/extensions/arcmenu/
   [extension-battery-health-charging]=/org/gnome/shell/extensions/Battery-Health-Charging/
@@ -35,7 +41,7 @@ declare -A DCONF_PATHS=(
 )
 
 # Keys that hold runtime state or machine-specific paths rather than preferences
-VOLATILE_KEYS='^(active-profile|bing-json|last-extension-version|last-prefs-version|last-save-directory|migrated-gtk-settings|numlock-state|prefs-open-count|selected-image|state)='
+VOLATILE_KEYS='^(active-profile|bing-json|last-extension-version|last-prefs-version|last-save-directory|migrated-gtk-settings|mru-sources|numlock-state|prefs-open-count|selected-image|state)='
 
 dump() {
   mkdir -p "$DCONF_DIR"
