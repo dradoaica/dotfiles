@@ -1,0 +1,23 @@
+# Keep editors and their formatters in line with the repository's style (https://editorconfig.org)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+max_line_length = 120
+# JetBrains IDEs: don't re-wrap paragraphs on reformat; it splits links across lines
+ij_markdown_wrap_text_if_long = false
+ij_markdown_keep_line_breaks_inside_text_blocks = true
+
+[Makefile]
+indent_style = tab
+
+# Git writes its config with tabs
+[home/git/.config/git/config]
+indent_style = tab

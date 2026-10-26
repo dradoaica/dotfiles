@@ -136,17 +136,17 @@ Proprietary drivers ([Post-Install](#post-install)) and the [Optional Apps](#opt
 Configuration lives in [`home/`](home), one folder per program. Each folder mirrors your home directory, and
 [GNU Stow](https://www.gnu.org/software/stow/) links its files into place:
 
-| Package     | Files                                                                               |
-|-------------|-------------------------------------------------------------------------------------|
-| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client        |
-| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, completions, history)     |
-|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)              |
-| `docker`    | Docker Desktop service override: waits for GNOME's tray at login, so its icon shows |
-| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)        |
-| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                      |
-| `k9s`       | `~/.config/k9s/` aliases and plugins                                                |
-| `ulauncher` | `~/.config/ulauncher/settings.json`                                                 |
-| `vscode`    | `~/.config/Code/User/settings.json`                                                 |
+| Package     | Files                                                                                |
+|-------------|--------------------------------------------------------------------------------------|
+| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client         |
+| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, fzf, completions, history) |
+|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)               |
+| `docker`    | Docker Desktop service override: waits for GNOME's tray at login, so its icon shows  |
+| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)         |
+| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                       |
+| `k9s`       | `~/.config/k9s/` aliases and plugins                                                 |
+| `ulauncher` | `~/.config/ulauncher/settings.json`                                                  |
+| `vscode`    | `~/.config/Code/User/settings.json`                                                  |
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
@@ -189,6 +189,12 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   example after a program overwrote its symlink. `make link` fixes them.
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
   `~/.dotfiles-backup/` if you want them back.
+- **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
+  without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
+  MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update, `gh` is logged in, the
+  apps from GitHub releases are installed and every GNOME extension is enabled.
+- **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
+  <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory.
 
 `link.sh` links individual files rather than whole folders, so programs that write extra files into `~/.config` never
 write them into the repository.
@@ -205,13 +211,21 @@ Keep anything private or specific to one machine out of the repository:
 
 ### Testing
 
-[CI](.github/workflows/ci.yml) runs on every push, in an Ubuntu 26.04 container:
+[CI](.github/workflows/ci.yml) runs on every push and every Monday, in an Ubuntu 26.04 container:
+
+- **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
+  GitHub CLI, Chrome and Microsoft repositories, the Docker Desktop, JetBrains Toolbox, nvm, Flathub and Homebrew
+  downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run catches a
+  source that broke while nothing in this repository changed. Run the same check locally with `make sources`.
 
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up and that a
   second run changes nothing, starts an interactive shell with the linked `.bashrc`, then unlinks everything again.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
   up in a tracked config file is caught before it stays public.
+
+[`.editorconfig`](.editorconfig) keeps editors in line with the repository's style (LF, 2-space indents, 120 columns
+for Markdown, no re-wrapping of Markdown paragraphs in JetBrains IDEs).
 
 [Dependabot](.github/dependabot.yml) opens a pull request each month when the GitHub Actions used here have new
 versions.

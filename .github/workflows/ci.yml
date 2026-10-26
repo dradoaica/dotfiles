@@ -3,13 +3,29 @@ name: CI
 on:
   push:
   pull_request:
+  # Weekly, so a PPA, repository or release that stops working is caught before the next fresh install
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 defaults:
   run:
     shell: bash
 
-# Lint and link run in a container of the release this repository targets, not on the runner's own Ubuntu
+# Lint, link and sources run in a container of the release this repository targets, not on the runner's own Ubuntu
 jobs:
+  sources:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install curl and jq
+        run: apt-get update && apt-get install -y ca-certificates curl jq
+      - name: Check the PPAs, repositories, downloads and GitHub releases the installer uses
+        run: bash scripts/check-sources.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint:
     runs-on: ubuntu-latest
     container: ubuntu:26.04

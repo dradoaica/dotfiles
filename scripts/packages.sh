@@ -63,7 +63,7 @@ sudo apt-get install -y phinger-cursor-theme
 sudo apt-get install -y breeze-cursor-theme
 
 # Install the toolchains and supporting tooling for setting up an efficient development environment
-sudo apt-get install -y ca-certificates gnupg2 pass build-essential git gh file jq procps net-tools libfuse2t64 pipx shellcheck
+sudo apt-get install -y ca-certificates gnupg2 pass build-essential git gh file jq procps net-tools libfuse2t64 pipx shellcheck fzf
 # Install and set up Python
 sudo apt-get install -y python3-full
 sudo apt-get install -y python3-pip python3-pip-whl

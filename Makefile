@@ -4,7 +4,7 @@ SHELL := /bin/bash
 SCRIPTS := scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile
 
 .DEFAULT_GOAL := help
-.PHONY: help install update packages link unlink check extensions load dump lint
+.PHONY: help install update packages link unlink check doctor extensions load dump lint sources
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-11s %s\n", $$1, $$2}'
@@ -27,6 +27,9 @@ unlink: ## Remove the symlinks (the files stay in the repository)
 check: ## Report dotfiles that are not linked
 	bash scripts/link.sh --check
 
+doctor: ## Check that this machine is still set up the way the installer left it
+	bash scripts/doctor.sh
+
 extensions: ## Install the GNOME extensions in gnome/extensions.txt
 	bash scripts/gnome.sh extensions
 
@@ -37,6 +40,9 @@ load: ## Apply the GNOME settings and app settings saved in gnome/ and apps/
 dump: ## Save the current GNOME extensions, GNOME settings and app settings into the repository
 	bash scripts/gnome.sh dump
 	bash scripts/apps.sh dump
+
+sources: ## Check that the PPAs, repositories and downloads the installer uses still work
+	bash scripts/check-sources.sh
 
 lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)
