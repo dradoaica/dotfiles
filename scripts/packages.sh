@@ -133,9 +133,25 @@ sudo chown -R "$USER" ~/.kube
 # Group membership applies after the next login, so use sudo here instead of newgrp
 sudo microk8s start
 sudo microk8s status --wait-ready
+# Merge the MicroK8s cluster into ~/.kube/config, keeping any other clusters and the current context
+microk8s_config="$(mktemp ~/.kube/microk8s.XXXXXX)"
 # The redirect runs as the user on purpose, so the file is owned by the user
 # shellcheck disable=SC2024
-sudo microk8s config > ~/.kube/config
+sudo microk8s config > "$microk8s_config"
+if [ -s ~/.kube/config ]; then
+  current_context="$(kubectl config current-context 2>/dev/null || true)"
+  # For entries in both files the first file wins, so fresh MicroK8s credentials replace stale ones
+  KUBECONFIG="$microk8s_config:$HOME/.kube/config" kubectl config view --flatten > "$microk8s_config.merged"
+  mv "$microk8s_config.merged" ~/.kube/config
+  if [ -n "$current_context" ]; then
+    kubectl config use-context "$current_context" > /dev/null
+  fi
+else
+  cp "$microk8s_config" ~/.kube/config
+fi
+rm -f "$microk8s_config"
+# It holds cluster credentials
+chmod 600 ~/.kube/config
 # Don't keep Kubernetes running in the background: `microk8s stop` also stops it starting at boot.
 # Run `microk8s start` when you need it.
 sudo microk8s stop

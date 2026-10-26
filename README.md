@@ -31,7 +31,8 @@ aware that it:
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
   overwrites the GNOME settings saved in [`gnome/dconf/`](gnome/dconf) (fonts, theme, shortcuts, extension settings).
-- Adds your user to the `microk8s` group and writes `~/.kube/config`, then stops MicroK8s so it does not run in the
+- Adds your user to the `microk8s` group and merges the MicroK8s cluster into `~/.kube/config` (other clusters and
+  the current context are kept; the file is made readable only by you), then stops MicroK8s so it does not run in the
   background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
 - Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login. Docker
   Engine is installed too, but disabled, since Docker Desktop runs its own engine. Start it with
