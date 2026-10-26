@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install curl and jq
         run: apt-get update && apt-get install -y ca-certificates curl jq
       - name: Check the PPAs, repositories, downloads and GitHub releases the installer uses
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install shellcheck
         run: apt-get update && apt-get install -y shellcheck
       - name: Shellcheck
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install Stow
         run: apt-get update && apt-get install -y stow
       - name: Link into a fresh home directory
@@ -68,7 +68,7 @@ jobs:
   secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # Scan the whole history, not just the latest commit
           fetch-depth: 0
