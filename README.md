@@ -122,14 +122,14 @@ Proprietary drivers ([Post-Install](#post-install)) and the [Optional Apps](#opt
 Configuration lives in [`home/`](home), one folder per program. Each folder mirrors your home directory, and
 [GNU Stow](https://www.gnu.org/software/stow/) links its files into place:
 
-| Package     | Files                                                                        |
-|-------------|------------------------------------------------------------------------------|
-| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client |
-| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm)                    |
-| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                               |
-| `k9s`       | `~/.config/k9s/` aliases and plugins                                         |
-| `ulauncher` | `~/.config/ulauncher/settings.json`                                          |
-| `vscode`    | `~/.config/Code/User/settings.json`                                          |
+| Package     | Files                                                                           |
+|-------------|---------------------------------------------------------------------------------|
+| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client    |
+| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, completions, history) |
+| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                  |
+| `k9s`       | `~/.config/k9s/` aliases and plugins                                            |
+| `ulauncher` | `~/.config/ulauncher/settings.json`                                             |
+| `vscode`    | `~/.config/Code/User/settings.json`                                             |
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
@@ -139,8 +139,9 @@ Battery Health Charging.
 
 ### Day to Day
 
-- **Update everything** with `make update`: APT, Snap and Flatpak packages, Homebrew, pipx tools, your GNOME extensions,
-  the Rust toolchain and Node 24 (keeping your global npm packages).
+- **Update everything** with `make update`: APT, Snap and Flatpak packages, Docker Desktop, Homebrew, pipx tools, your
+  GNOME extensions, the Rust toolchain and Node 24 (keeping your global npm packages). It then removes unused packages
+  and old snap revisions, the same cleanup the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)).
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -169,7 +170,8 @@ Keep anything private or specific to one machine out of the repository:
 - **Shell**: put it in an extra file in `~/.bashrc.d/`, for example `~/.bashrc.d/local.sh`. Every `*.sh` file there is
   loaded, but only the ones in `home/bash/.bashrc.d/` are tracked.
 - **Git**: put it in `~/.config/git/config.local` (signing key, work email). The Git config includes it, and it is not
-  tracked.
+  tracked. `git config --global` writes through the symlink into the repository, so use
+  `git config --file ~/.config/git/config.local` instead.
 
 ### Testing
 
@@ -185,18 +187,19 @@ Keep anything private or specific to one machine out of the repository:
 
 ### GitHub CLI
 
-Sign in once, then let Git use the same credentials, so `git push` over HTTPS works without a separate token:
+Sign in once. The Git config already uses the GitHub CLI's credentials for github.com, so `git push` over HTTPS then
+works without a separate token, and you do not need `gh auth setup-git`:
 
 ```bash
 gh auth login
-gh auth setup-git
 ```
 
 ### Ulauncher Hotkey on Wayland
 
 On Wayland, Ulauncher does not receive its hotkey while some windows are focused (e.g. Terminal or Settings), so it
 is bound through GNOME instead. `gnome.sh load` restores this as a custom shortcut (<kbd>Ctrl</kbd>+<kbd>Space</kbd> →
-`ulauncher-toggle`). To set it up by hand:
+`ulauncher-toggle`), and the linked Ulauncher settings move Ulauncher's own hotkey to
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Super</kbd>+<kbd>F12</kbd>, so the two never both fire. To set it up by hand:
 
 1. In Ulauncher Preferences, set the hotkey to something you will never press.
 2. Open **Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts** and click **Add Shortcut**.

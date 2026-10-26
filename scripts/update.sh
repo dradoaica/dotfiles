@@ -1,6 +1,6 @@
 #!/bin/bash
-# Update everything the installer set up: system packages, Homebrew, pipx tools,
-# GNOME extensions, the Rust toolchain and Node 24.
+# Update everything the installer set up: system packages, Docker Desktop, Homebrew,
+# pipx tools, GNOME extensions, the Rust toolchain and Node 24.
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -10,29 +10,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "== APT"
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get autoremove -y
-sudo apt-get autoclean -y
 
 echo "== Snap"
 sudo snap refresh
-# Keep two revisions of each snap and remove the disabled older ones
-sudo snap set system refresh.retain=2
-snap list --all | awk '/disabled/{print $1, $3}' | while IFS=' ' read -r snap rev; do
-  sudo snap remove --revision="$rev" "$snap"
-done
 
 echo "== Flatpak"
 sudo flatpak update -y
-sudo flatpak uninstall --unused -y
-sudo flatpak repair
 
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-  echo "== Homebrew"
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  brew update
-  brew upgrade
-  brew cleanup
+# Docker Desktop is installed from a downloaded .deb, not a repository, so APT never upgrades it
+if dpkg-query -W docker-desktop > /dev/null 2>&1; then
+  echo "== Docker Desktop"
+  # The installed version ends in the build number, e.g. 4.89.0-238018
+  installed_build="$(dpkg-query -W -f='${Version}' docker-desktop)"
+  installed_build="${installed_build##*-}"
+  # The update feed links each release as .../amd64/<build>/docker-desktop-amd64.deb
+  latest_build="$(curl -fsSL https://desktop.docker.com/linux/main/amd64/appcast.xml \
+    | grep -oE 'amd64/[0-9]+/docker-desktop-amd64\.deb' | cut -d/ -f2 | sort -n | tail -1)"
+  if [ -n "$latest_build" ] && [ "$latest_build" -gt "$installed_build" ]; then
+    curl -fL "https://desktop.docker.com/linux/main/amd64/$latest_build/docker-desktop-amd64.deb" -o /tmp/docker-desktop-amd64.deb
+    sudo apt-get install -y /tmp/docker-desktop-amd64.deb
+    rm -f /tmp/docker-desktop-amd64.deb
+  else
+    echo "Docker Desktop is up to date (build $installed_build)"
+  fi
 fi
+
+for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
+  if [ -x "$brew" ]; then
+    echo "== Homebrew"
+    eval "$("$brew" shellenv)"
+    brew update
+    brew upgrade
+    brew cleanup
+    break
+  fi
+done
 
 if command -v pipx > /dev/null; then
   echo "== pipx"
@@ -58,5 +70,8 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   nvm alias default 24
   set -u
 fi
+
+echo "== Cleanup"
+bash "$SCRIPT_DIR/cleanup.sh"
 
 echo "Done. Log out and back in if GNOME extensions were updated."

@@ -1,13 +1,29 @@
-[cola]
-	startupmode = folder
-	boldheaders = false
-	theme = default
-	icontheme = default
 [user]
 	name = dradoaica
 	email = dradoaica@gmail.com
 [init]
 	defaultBranch = main
-# Machine-specific or private settings (signing key, work email); not tracked
+[push]
+	autoSetupRemote = true
+[pull]
+	ff = only
+[fetch]
+	prune = true
+[diff]
+	algorithm = histogram
+[merge]
+	conflictStyle = zdiff3
+[rerere]
+	enabled = true
+# Use the GitHub CLI's login for HTTPS remotes; this is what `gh auth setup-git` would add
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+# Machine-specific or private settings (signing key, work email); not tracked.
+# `git config --global` writes through the symlink into this repository, so use
+# `git config --file ~/.config/git/config.local` for anything that should stay local.
 [include]
 	path = ~/.config/git/config.local

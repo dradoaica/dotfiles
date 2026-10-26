@@ -1,8 +1,11 @@
 #!/bin/bash
+# Add the APT, Snap and Flatpak sources, then install the packages, toolchains and applications.
 
 set -euo pipefail
 IFS=$'\n\t'
 export DEBIAN_FRONTEND=noninteractive
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Install pre-requisite packages
 sudo apt-get update
@@ -20,7 +23,7 @@ sudo add-apt-repository -y ppa:s4solutionsllc/nexis
 sudo add-apt-repository -y ppa:solaar-unifying/stable
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
@@ -28,7 +31,7 @@ sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
 curl -fsSL "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
 sudo dpkg -i /tmp/packages-microsoft-prod.deb
 rm -f /tmp/packages-microsoft-prod.deb
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
 
@@ -168,11 +171,4 @@ sudo flatpak install -y flathub me.timschneeberger.GalaxyBudsClient
 sudo flatpak install -y flathub com.github.dail8859.NotepadNext
 
 # Cleanup
-sudo apt-get autoremove -y
-sudo apt-get autoclean -y
-sudo snap set system refresh.retain=2
-snap list --all | awk '/disabled/{print $1, $3}' | while IFS=' ' read -r snap rev; do
-    sudo snap remove --revision="$rev" "$snap"
-done
-sudo flatpak uninstall --unused -y
-sudo flatpak repair
+bash "$SCRIPT_DIR/cleanup.sh"
