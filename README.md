@@ -91,7 +91,8 @@ work through [Post-Install](#post-install).
     - Graphics: GIMP, Ksnip.
     - System: GNOME Tweaks, GNOME Shell Extensions, Nexis, Ulauncher, Déjà Dup, File Roller.
     - Security: ClamAV, ClamTK.
-    - Hardware: Solaar (Logitech), OpenRazer and Polychromatic (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
+    - Hardware: Solaar (Logitech; skipped if [OpenLogi](#openlogi) is installed), OpenRazer and Polychromatic
+      (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
     - Games: GNOME Chess, Steam.
 
 ### GNOME Extensions
@@ -294,6 +295,14 @@ Open-source alternative to Solaar for Logitech devices.
 ```bash
 gh release download -R AprilNEA/OpenLogi --pattern '*linux-amd64.deb' -D /tmp/openlogi
 sudo apt-get install -y /tmp/openlogi/*.deb
+```
+
+Both control the same devices, so remove Solaar and its PPA afterwards. `packages.sh` skips them while OpenLogi is
+installed:
+
+```bash
+sudo apt-get purge -y solaar
+sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
 ```
 
 ### Wayland Scroll Factor

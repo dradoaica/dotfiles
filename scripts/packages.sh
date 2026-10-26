@@ -20,7 +20,10 @@ sudo add-apt-repository -y ppa:openrazer/stable
 sudo add-apt-repository -y ppa:polychromatic/stable
 sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
 sudo add-apt-repository -y ppa:s4solutionsllc/nexis
-sudo add-apt-repository -y ppa:solaar-unifying/stable
+# Solaar and OpenLogi (an optional app, see the README) both drive Logitech devices; keep only OpenLogi if it is installed
+if ! dpkg-query -W openlogi > /dev/null 2>&1; then
+  sudo add-apt-repository -y ppa:solaar-unifying/stable
+fi
 sudo install -m 0755 -d /usr/share/keyrings
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
@@ -176,7 +179,9 @@ sudo apt-get install -y nexis
 sudo apt-get install -y openrazer-meta
 sudo apt-get install -y polychromatic
 sudo apt-get install -y qbittorrent
-sudo apt-get install -y solaar
+if ! dpkg-query -W openlogi > /dev/null 2>&1; then
+  sudo apt-get install -y solaar
+fi
 sudo apt-get install -y steam
 sudo apt-get install -y ulauncher
 sudo apt-get install -y vlc
