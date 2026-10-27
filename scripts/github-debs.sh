@@ -8,8 +8,10 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 # Lines of <owner/repo> <package> <regex matching the release asset>
-mapfile -t PACKAGES < <(grep -vE '^[[:space:]]*(#|$)' "$(dirname "$SCRIPT_DIR")/packages/github-debs.txt")
+mapfile -t PACKAGES < <(read_list github-debs.txt)
 
 check_only=false
 case "${1:-}" in
@@ -27,12 +29,7 @@ install_latest() {
   local repo="$1" package="$2" pattern="$3"
   local release latest asset installed deb digest
 
-  # A token raises the API rate limit, which shared CI runners can otherwise hit
-  local auth=()
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
-  fi
-  release="$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/$repo/releases/latest")"
+  release="$(github_api "repos/$repo/releases/latest")"
   latest="$(jq -r '.tag_name | ltrimstr("v")' <<< "$release")"
   asset="$(jq -c --arg pattern "$pattern" '[.assets[] | select(.name | test($pattern))][0] // empty' <<< "$release")"
   if [ -z "$asset" ]; then

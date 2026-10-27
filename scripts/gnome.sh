@@ -6,10 +6,10 @@
 #        gnome.sh load         apply the saved settings to this session
 
 set -euo pipefail
-IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 DCONF_DIR="$ROOT_DIR/gnome/dconf"
 EXTENSIONS_FILE="$ROOT_DIR/gnome/extensions.txt"
 USER_EXTENSIONS_DIR="$HOME/.local/share/gnome-shell/extensions"
@@ -40,13 +40,27 @@ declare -A DCONF_PATHS=(
   [text-editor]=/org/gnome/TextEditor/
 )
 
-# Keys that hold runtime state or machine-specific paths rather than preferences
-VOLATILE_KEYS='^(active-profile|bing-json|last-extension-version|last-prefs-version|last-save-directory|migrated-gtk-settings|mru-sources|numlock-state|prefs-open-count|selected-image|state)='
+# Keys that hold runtime state or machine-specific paths rather than preferences: never saved or reset
+VOLATILE_KEYS=(
+  active-profile
+  bing-json
+  last-extension-version
+  last-prefs-version
+  last-save-directory
+  migrated-gtk-settings
+  mru-sources
+  numlock-state
+  prefs-open-count
+  selected-image
+  state
+)
+# Matches a "key=value" line of a dconf dump for any of them
+VOLATILE_PATTERN="^($(IFS='|'; echo "${VOLATILE_KEYS[*]}"))="
 
 dump() {
   mkdir -p "$DCONF_DIR"
   for name in "${!DCONF_PATHS[@]}"; do
-    dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_KEYS" || true; } > "$DCONF_DIR/$name.dconf"
+    dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_PATTERN" || true; } > "$DCONF_DIR/$name.dconf"
   done
   # Only the list of enabled extensions from /org/gnome/shell/, not the whole tree
   printf '[/]\nenabled-extensions=%s\n' "$(dconf read /org/gnome/shell/enabled-extensions)" > "$DCONF_DIR/shell.dconf"
@@ -103,7 +117,7 @@ load() {
     while read -r key; do
       dconf reset "$path$key"
     done < <(LC_ALL=C comm -23 \
-      <(dconf dump "$path" | { grep -vE "$VOLATILE_KEYS" || true; } | dconf_keys | LC_ALL=C sort) \
+      <(dconf dump "$path" | { grep -vE "$VOLATILE_PATTERN" || true; } | dconf_keys | LC_ALL=C sort) \
       <(dconf_keys < "$file" | LC_ALL=C sort))
     dconf load "$path" < "$file"
   done

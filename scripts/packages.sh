@@ -18,37 +18,61 @@ prerequisites() {
   sudo apt-get install -y "${PREREQUISITES[@]}"
 }
 
+# add_keyed_repository <name> <signing key URL> <keyring file> <source>: save the repository's signing key
+# and write /etc/apt/sources.list.d/<name>.list, so apt trusts that key for this repository only
+add_keyed_repository() {
+  local name="$1" key_url="$2" keyring="$3" source="$4"
+  sudo curl -fsSL "$key_url" -o "$keyring"
+  sudo chmod a+r "$keyring"
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=$keyring] $source" \
+    | sudo tee "/etc/apt/sources.list.d/$name.list" > /dev/null
+}
+
+# Google Chrome's repository, written as the same .sources file the Chrome package keeps up to date
+# (it migrates an older google-chrome.list into it)
+add_chrome_repository() {
+  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+    | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
+  sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+  sudo tee /etc/apt/sources.list.d/google-chrome.sources > /dev/null <<'EOF'
+Types: deb
+URIs: https://dl.google.com/linux/chrome-stable/deb/
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/google-chrome.gpg
+EOF
+}
+
 sources() {
   # Steam needs 32-bit libraries
   sudo dpkg --add-architecture i386
+
   sudo add-apt-repository -y ppa:agornostal/ulauncher
   sudo add-apt-repository -y ppa:openrazer/stable
   sudo add-apt-repository -y ppa:polychromatic/stable
   sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
   sudo add-apt-repository -y ppa:s4solutionsllc/nexis
-  # OpenLogi replaces Solaar for Logitech devices; remove Solaar's PPA from machines set up before
+
+  sudo install -m 0755 -d /usr/share/keyrings /etc/apt/keyrings
+  add_keyed_repository docker https://download.docker.com/linux/ubuntu/gpg /etc/apt/keyrings/docker.asc \
+    "https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable"
+  add_keyed_repository github-cli https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    /etc/apt/keyrings/githubcli-archive-keyring.gpg "https://cli.github.com/packages stable main"
+  add_chrome_repository
+
+  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+  # Sources that machines set up by an earlier version of this script have, but that are no longer used.
+  # OpenLogi replaces Solaar for Logitech devices:
   if compgen -G "/etc/apt/sources.list.d/solaar-unifying-*" > /dev/null; then
     sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
   fi
-  sudo install -m 0755 -d /usr/share/keyrings
-  sudo install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
-  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-  sudo chmod a+r /etc/apt/keyrings/docker.asc
-  sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
-  sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-  # .NET comes from Ubuntu's archive and nothing else installed needs Microsoft's repository; remove it from
-  # machines set up before (purging packages-microsoft-prod removes its sources entry and key)
+  # .NET comes from Ubuntu's archive, and nothing else needs Microsoft's repository (purging
+  # packages-microsoft-prod removes its sources entry and key):
   if dpkg -s packages-microsoft-prod > /dev/null 2>&1; then
     sudo apt-get purge -y packages-microsoft-prod
   fi
-  # The same file the Chrome package keeps up to date (it migrates an older google-chrome.list into it)
-  sudo rm -f /etc/apt/sources.list.d/google-chrome.list
-  printf '%s\n' "Types: deb" "URIs: https://dl.google.com/linux/chrome-stable/deb/" "Suites: stable" "Components: main" \
-    "Architectures: amd64" "Signed-By: /usr/share/keyrings/google-chrome.gpg" | sudo tee /etc/apt/sources.list.d/google-chrome.sources
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list
-  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 }
 
 upgrade() {
@@ -121,7 +145,8 @@ docker_setup() {
   # Send docker commands to Docker Desktop rather than to Docker Engine's root-owned socket,
   # and start Docker Desktop at login so that context always answers
   if ! docker context inspect desktop-linux > /dev/null 2>&1; then
-    docker context create desktop-linux --description "Docker Desktop" --docker "host=unix://$HOME/.docker/desktop/docker.sock"
+    docker context create desktop-linux --description "Docker Desktop" \
+      --docker "host=unix://$HOME/.docker/desktop/docker.sock"
   fi
   docker context use desktop-linux
   systemctl --user enable docker-desktop
@@ -134,16 +159,26 @@ docker_setup() {
   mv "$docker_settings.new" "$docker_settings"
   # Docker Desktop runs its own engine in a VM, so keep Docker Engine installed but stopped
   sudo systemctl disable --now docker.service docker.socket containerd.service
+}
+
+# gpg_key_id <name>: print the ID of the GPG key with that name, if there is one
+gpg_key_id() {
+  gpg --list-keys --with-colons "$1" 2> /dev/null | awk -F: '/^pub/ { print $5; exit }' || true
+}
+
+docker_credentials() {
   # Docker Desktop stores registry credentials with pass, which needs a GPG key
-  if [ ! -d "$HOME/.password-store" ]; then
-    local gpg_key_id
-    gpg_key_id=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
-    if [ -z "$gpg_key_id" ]; then
-      gpg --batch --passphrase "" --quick-gen-key "Docker Desktop" default default
-      gpg_key_id=$(gpg --list-keys --with-colons "Docker Desktop" 2>/dev/null | awk -F: '/^pub/ { print $5; exit }' || true)
-    fi
-    pass init "$gpg_key_id"
+  if [ -d "$HOME/.password-store" ]; then
+    echo "pass is already set up"
+    return
   fi
+  local key_id
+  key_id="$(gpg_key_id "Docker Desktop")"
+  if [ -z "$key_id" ]; then
+    gpg --batch --passphrase "" --quick-gen-key "Docker Desktop" default default
+    key_id="$(gpg_key_id "Docker Desktop")"
+  fi
+  pass init "$key_id"
 }
 
 kubernetes() {
@@ -180,13 +215,8 @@ kubernetes() {
 
 homebrew() {
   NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  local brew line args missing=()
-  for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
-    if [ -x "$brew" ]; then
-      eval "$("$brew" shellenv)"
-      break
-    fi
-  done
+  load_homebrew
+  local line args missing=()
   while read -r line; do
     IFS=' ' read -r -a args <<< "$line"
     brew install "${args[@]}" || missing+=("$line")
@@ -204,7 +234,8 @@ jetbrains_toolbox() {
     return
   fi
   local url
-  url=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" | jq -r '.TBA[0].downloads.linux.link')
+  url=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
+    | jq -r '.TBA[0].downloads.linux.link')
   sudo mkdir -p /opt/jetbrains-toolbox
   curl -fL "$url" -o /tmp/jetbrains-toolbox.tar.gz
   sudo tar -xzf /tmp/jetbrains-toolbox.tar.gz -C /opt/jetbrains-toolbox --strip-components=1
@@ -246,6 +277,7 @@ step Flatpak flatpak_packages
 step Rust rust
 step Node node_js
 step Docker docker_setup
+step "Docker credentials" docker_credentials
 step Kubernetes kubernetes
 step Homebrew homebrew
 step "JetBrains Toolbox" jetbrains_toolbox

@@ -32,25 +32,35 @@ from_ubuntu_archive() {
     /(archive|security|ports)\.ubuntu\.com/ && package != printed { print package; printed = package }'
 }
 
-# APT packages that were installed on request, minus the ones Ubuntu installed itself: anything Essential or of
-# priority required or important that comes from Ubuntu's archive (third-party packages can claim any priority),
-# and anything Ubuntu's installed ubuntu-* metapackages depend on or recommend
+# Print the installed metapackages that make up Ubuntu itself, e.g. ubuntu-desktop-minimal
+ubuntu_metapackages() {
+  dpkg-query -W -f='${db:Status-Status} ${Package}\n' 'ubuntu-*' 2> /dev/null \
+    | awk '$1 == "installed" { print $2 }' \
+    | grep -E '^ubuntu-(minimal|standard|desktop|desktop-minimal|restricted-addons)$' || true
+}
+
+# ubuntu_installed <manual packages>: print the ones among them that Ubuntu installed itself
+ubuntu_installed() {
+  local manual="$1" metapackages
+  # Essential, or of priority required or important, and from Ubuntu's archive, since third-party packages can
+  # claim any priority
+  comm -12 <(echo "$manual") <(dpkg-query -W -f='${Package} ${Priority} ${Essential}\n' \
+    | awk '$2 == "required" || $2 == "important" || $3 == "yes" { print $1 }' | sort -u) \
+    | from_ubuntu_archive
+  # What Ubuntu's metapackages depend on or recommend
+  mapfile -t metapackages < <(ubuntu_metapackages)
+  if [ "${#metapackages[@]}" -gt 0 ]; then
+    apt-cache depends --no-pre-depends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances \
+      "${metapackages[@]}" | awk '/(Depends|Recommends):/ { gsub(/[<>]/, "", $2); print $2 }'
+  fi
+}
+
+# APT packages that were installed on request, minus the ones Ubuntu installed itself
 apt_installed() {
-  local manual metapackages
+  local manual
   # Without the architecture suffix of foreign packages, e.g. steam:i386
   manual="$(apt-mark showmanual | sed 's/:[a-z0-9]*$//' | sort -u)"
-  mapfile -t metapackages < <(dpkg-query -W -f='${db:Status-Status} ${Package}\n' 'ubuntu-*' 2>/dev/null \
-    | awk '$1 == "installed" { print $2 }' | grep -E '^ubuntu-(minimal|standard|desktop|desktop-minimal|restricted-addons)$' || true)
-  comm -23 <(echo "$manual") <(
-    {
-      comm -12 <(echo "$manual") <(dpkg-query -W -f='${Package} ${Priority} ${Essential}\n' \
-        | awk '$2 == "required" || $2 == "important" || $3 == "yes" { print $1 }' | sort -u) | from_ubuntu_archive
-      if [ "${#metapackages[@]}" -gt 0 ]; then
-        apt-cache depends --no-pre-depends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances \
-          "${metapackages[@]}" | awk '/(Depends|Recommends):/ { gsub(/[<>]/, "", $2); print $2 }'
-      fi
-    } | sort -u
-  ) | sed 's/^/apt:/'
+  comm -23 <(echo "$manual") <(ubuntu_installed "$manual" | sort -u) | sed 's/^/apt:/'
 }
 
 # Print "<manager>:<name>" for everything installed that drift can compare
@@ -62,13 +72,9 @@ installed() {
   if command -v flatpak > /dev/null; then
     flatpak list --app --columns=application | sed 's/^/flatpak:/'
   fi
-  local brew
-  for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
-    if [ -x "$brew" ]; then
-      { "$brew" leaves --installed-on-request; "$brew" list --cask; } | sed 's/^/brew:/'
-      break
-    fi
-  done
+  if load_homebrew; then
+    { brew leaves --installed-on-request; brew list --cask; } | sed 's/^/brew:/'
+  fi
 }
 
 ignored='^('"$(read_list ignore.txt | paste -sd'|')"')$'

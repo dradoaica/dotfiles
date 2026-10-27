@@ -40,17 +40,10 @@ github_debs() {
 }
 
 homebrew() {
-  local brew
-  for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
-    if [ -x "$brew" ]; then
-      eval "$("$brew" shellenv)"
-      brew update
-      brew upgrade
-      brew cleanup
-      return
-    fi
-  done
-  echo "Homebrew is not installed, skipping"
+  load_homebrew || { echo "Homebrew is not installed, skipping"; return; }
+  brew update
+  brew upgrade
+  brew cleanup
 }
 
 pipx_tools() {
@@ -71,9 +64,11 @@ node_js() {
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] || { echo "nvm is not installed, skipping"; return; }
   # nvm is a Git checkout; move it to its newest release tag
+  local newest_commit newest_tag
   git -C "$NVM_DIR" fetch --tags --quiet
-  git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet \
-    "$(git -C "$NVM_DIR" describe --abbrev=0 --tags --match 'v[0-9]*' "$(git -C "$NVM_DIR" rev-list --tags --max-count=1)")"
+  newest_commit="$(git -C "$NVM_DIR" rev-list --tags --max-count=1)"
+  newest_tag="$(git -C "$NVM_DIR" describe --abbrev=0 --tags --match 'v[0-9]*' "$newest_commit")"
+  git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet "$newest_tag"
   # nvm is not written for `set -u`
   set +u
   . "$NVM_DIR/nvm.sh"

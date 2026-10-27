@@ -5,10 +5,10 @@
 #        apps.sh load   apply them to this machine
 
 set -euo pipefail
-IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 APPS_DIR="$ROOT_DIR/apps"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
@@ -28,12 +28,7 @@ DESKTOP_DIRS=(
 )
 
 # Homebrew installs helm
-for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
-  if [ -x "$brew" ]; then
-    eval "$("$brew" shellenv)"
-    break
-  fi
-done
+load_homebrew || true
 
 dump() {
   mkdir -p "$APPS_DIR"

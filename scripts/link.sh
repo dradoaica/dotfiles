@@ -6,10 +6,10 @@
 #   --unlink     remove the links (the files stay in the repository)
 
 set -euo pipefail
-IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 PACKAGES_DIR="$ROOT_DIR/home"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 

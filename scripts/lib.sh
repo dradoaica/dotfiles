@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Helpers shared by packages.sh, update.sh and drift.sh. Source it; it sets ROOT_DIR.
+# Helpers shared by the scripts in scripts/. Source it; it sets ROOT_DIR to the repository.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -10,6 +10,42 @@ PREREQUISITES=(curl flatpak jq software-properties-common stow wget)
 # Print the entries of a list in packages/, without comments and blank lines
 read_list() {
   grep -vE '^[[:space:]]*(#|$)' "$ROOT_DIR/packages/$1" | sed -E 's/[[:space:]]+#.*$//'
+}
+
+# Put Homebrew on PATH for this script; fails if it is not installed
+load_homebrew() {
+  local brew
+  for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
+    if [ -x "$brew" ]; then
+      eval "$("$brew" shellenv)"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# github_api <path>: print the GitHub API response for a path such as repos/nvm-sh/nvm/releases/latest.
+# Uses GITHUB_TOKEN when it is set, which raises the rate limit that shared CI runners can otherwise hit.
+github_api() {
+  local auth=()
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
+  fi
+  curl -fsSL "${auth[@]}" "https://api.github.com/$1"
+}
+
+failed_checks=0
+# check <description> <command...>: run the command quietly and print "ok" or "FAIL" for it.
+# Count failures in failed_checks instead of stopping, so every check runs.
+check() {
+  local description="$1"
+  shift
+  if "$@" > /dev/null 2>&1; then
+    echo "ok    $description"
+  else
+    echo "FAIL  $description"
+    failed_checks=$((failed_checks + 1))
+  fi
 }
 
 failed_steps=()

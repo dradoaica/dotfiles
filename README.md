@@ -84,34 +84,24 @@ work through [Post-Install](#post-install).
 
 ### Installed Automatically
 
-The packages are listed in [`packages/`](packages), one file per package manager: [`apt.txt`](packages/apt.txt),
-[`snap.txt`](packages/snap.txt), [`flatpak.txt`](packages/flatpak.txt), [`brew.txt`](packages/brew.txt) and
-[`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases.
+The installer reads its package lists from [`packages/`](packages), one file per package manager:
+[`apt.txt`](packages/apt.txt), [`snap.txt`](packages/snap.txt), [`flatpak.txt`](packages/flatpak.txt),
+[`brew.txt`](packages/brew.txt) and [`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases.
+Those files are the full, current list; this is an overview.
 
-- **Package managers**: Flatpak (with Flathub) alongside APT and Snap, plus Homebrew.
-- **Fonts**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), from Ubuntu's
-  `fonts-inter`, `fonts-inter-variable` and `fonts-jetbrains-mono` packages.
-- **Cursors**: [Bibata](https://github.com/ful1e5/Bibata_Cursor), [Phinger](https://github.com/phisch/phinger-cursors)
-  and [Breeze](https://github.com/KDE/breeze).
-- **Development**:
-    - Languages: Python, Go, Rust (via rustup only), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby, Node.js 24 (via
-      nvm).
-    - IDEs: VS Code, JetBrains Toolbox.
-    - Git: GitKraken, GitHub CLI (`gh`).
-    - Containers and Kubernetes: Docker Engine, Docker Desktop, Multipass, MicroK8s, kubectl, Helm, helm-docs, K9s.
-    - Other: Postman, Claude Code.
-- **Applications**:
-    - Productivity: Google Chrome, Firefox, LibreOffice, qBittorrent, VLC, Notepad Next, Adobe Acrobat Reader
-      (`acrordrdc` snap, runs via WINE).
-    - Graphics: GIMP, Ksnip.
-    - System: GNOME Tweaks, GNOME Shell Extensions, Nexis, Ulauncher, Déjà Dup, File Roller,
-      [balenaEtcher](https://github.com/balena-io/etcher) (writes OS images to USB drives and SD cards).
-    - Touchpad: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
-      speed (`wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30`), from the next login.
-    - Security: ClamAV, ClamTK.
-    - Hardware: [OpenLogi](https://github.com/AprilNEA/OpenLogi) (Logitech; replaces Solaar, which the installer removes
-      if it finds it), OpenRazer and Polychromatic (Razer), Galaxy Buds Client (Samsung Galaxy Buds).
-    - Games: GNOME Chess, Steam.
+- **Package managers**: APT, Snap, Flatpak (with Flathub) and Homebrew.
+- **Development**: Python, Go, Rust (via rustup), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby and Node.js 24 (via
+  nvm); VS Code, JetBrains Toolbox, GitKraken, the GitHub CLI and Claude Code.
+- **Containers and Kubernetes**: Docker Desktop (Docker Engine is installed too, but stays off), MicroK8s (stopped
+  until you start it), Multipass, kubectl, Helm and K9s.
+- **Apps**: browsers, LibreOffice, media, graphics and screenshot tools, a BitTorrent client, backups (Déjà Dup),
+  antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher) and games.
+- **Hardware**: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech devices (it replaces Solaar, which the
+  installer removes if it finds it), OpenRazer and Polychromatic for Razer, and Galaxy Buds Client.
+- **Touchpad**: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
+  speed from the next login.
+- **Fonts and cursors**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/);
+  Bibata, Phinger and Breeze cursors.
 
 ### GNOME Extensions
 

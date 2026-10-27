@@ -2,23 +2,12 @@
 # Check that this machine is still set up the way the installer left it, without changing anything.
 # Exits with an error if any check fails.
 
+# No `set -e`: a check that fails must not stop the checks after it
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-
-failures=0
-# check <description> <command...>: run the command quietly and report whether it succeeded
-check() {
-  local description="$1"
-  shift
-  if "$@" > /dev/null 2>&1; then
-    echo "ok    $description"
-  else
-    echo "FAIL  $description"
-    failures=$((failures + 1))
-  fi
-}
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'; }
 not_installed() { ! installed "$1"; }
@@ -72,8 +61,8 @@ check "Wayland Scroll Factor is installed and enabled" wsf_enabled
 echo "== GNOME"
 check "every extension in gnome/extensions.txt is enabled" extensions_enabled
 
-if [ "$failures" -gt 0 ]; then
-  echo "$failures check(s) failed" >&2
+if [ "$failed_checks" -gt 0 ]; then
+  echo "$failed_checks check(s) failed" >&2
   exit 1
 fi
 echo "Everything checks out"
