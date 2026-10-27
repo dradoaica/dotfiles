@@ -16,3 +16,5 @@ apt:docker-desktop
 snap:(bare|snapd|core[0-9]*)
 snap:(gnome-[0-9-]+|gtk-common-themes|mesa-[0-9]+|wine-platform-.*|gaming-graphics-.*|icon-theme-.*)
 snap:(firmware-updater|snap-store|snapd-desktop-integration|desktop-security-center|prompting-client)
+# Installed by `pro enable livepatch` (Ubuntu Pro)
+snap:canonical-livepatch
