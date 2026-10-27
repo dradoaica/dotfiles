@@ -37,9 +37,11 @@ sources() {
   sudo chmod a+r /etc/apt/keyrings/docker.asc
   sudo curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
   sudo chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-  curl -fsSL "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb" -o /tmp/packages-microsoft-prod.deb
-  sudo dpkg -i /tmp/packages-microsoft-prod.deb
-  rm -f /tmp/packages-microsoft-prod.deb
+  # .NET comes from Ubuntu's archive and nothing else installed needs Microsoft's repository; remove it from
+  # machines set up before (purging packages-microsoft-prod removes its sources entry and key)
+  if dpkg -s packages-microsoft-prod > /dev/null 2>&1; then
+    sudo apt-get purge -y packages-microsoft-prod
+  fi
   # The same file the Chrome package keeps up to date (it migrates an older google-chrome.list into it)
   sudo rm -f /etc/apt/sources.list.d/google-chrome.list
   printf '%s\n' "Types: deb" "URIs: https://dl.google.com/linux/chrome-stable/deb/" "Suites: stable" "Components: main" \

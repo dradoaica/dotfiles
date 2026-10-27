@@ -30,7 +30,7 @@ aware that it:
   ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
   for each build.
 - Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
-  Google Chrome, Docker, GitHub CLI and Microsoft repositories.
+  Google Chrome, Docker and GitHub CLI repositories. .NET comes from Ubuntu's own archive.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
@@ -234,7 +234,7 @@ Keep anything private or specific to one machine out of the repository:
 [CI](.github/workflows/ci.yml) runs on every push and every Monday, in an Ubuntu 26.04 container:
 
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
-  GitHub CLI, Chrome and Microsoft repositories, the Docker Desktop, JetBrains Toolbox, nvm, Flathub and Homebrew
+  GitHub CLI and Chrome repositories, the Docker Desktop, JetBrains Toolbox, nvm, Flathub and Homebrew
   downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run catches a
   source that broke while nothing in this repository changed. Run the same check locally with `make sources`.
 

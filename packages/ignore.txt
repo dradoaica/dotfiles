@@ -9,7 +9,6 @@ apt:(nvidia|libnvidia).*
 apt:ubuntu-.*
 
 # Pulled in or set up by the installer itself
-apt:packages-microsoft-prod
 apt:docker-desktop
 
 # Bases, runtimes and themes that snaps and Flatpak apps install for themselves, and the snaps Ubuntu ships

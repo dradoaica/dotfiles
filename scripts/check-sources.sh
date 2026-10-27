@@ -1,6 +1,6 @@
 #!/bin/bash
 # Check that every outside source the installer downloads from still works for this Ubuntu release:
-# the PPAs and APT repositories, the Microsoft, Docker Desktop, JetBrains Toolbox, nvm and Flathub
+# the PPAs and APT repositories, the Docker Desktop, JetBrains Toolbox, nvm and Flathub
 # downloads, and the GitHub releases in github-debs.sh. Installs nothing. CI runs it every week.
 
 set -uo pipefail
@@ -44,8 +44,6 @@ echo "== APT repositories"
 check "Docker ($VERSION_CODENAME)" url_exists "https://download.docker.com/linux/ubuntu/dists/$VERSION_CODENAME/Release"
 check "GitHub CLI" url_exists https://cli.github.com/packages/dists/stable/Release
 check "Google Chrome" url_exists https://dl.google.com/linux/chrome-stable/deb/dists/stable/Release
-check "Microsoft (packages-microsoft-prod.deb for $VERSION_ID)" \
-  url_exists "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb"
 
 echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
