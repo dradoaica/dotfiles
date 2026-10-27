@@ -89,8 +89,18 @@ node_js() {
   # nvm is not written for `set -u`
   set +u
   . "$NVM_DIR/nvm.sh"
-  # Install the latest Node 24, carrying over the global npm packages
-  nvm install 24 --reinstall-packages-from=default
+  local current latest
+  current="$(nvm version default)"
+  latest="$(nvm version-remote 24)"
+  if [ "$current" = "$latest" ]; then
+    # nvm refuses to reinstall packages from the version it is installing, so there is nothing to do
+    echo "Node $current is up to date"
+  elif [ "$current" = N/A ]; then
+    nvm install 24
+  else
+    # Install the latest Node 24, carrying over the global npm packages
+    nvm install 24 --reinstall-packages-from=default
+  fi
   nvm alias default 24
 }
 
