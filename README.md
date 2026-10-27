@@ -22,9 +22,11 @@ aware that it:
 
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
-- Installs balenaEtcher, OpenLogi and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases ([
-  `scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
-  publishes for it.
+- Installs balenaEtcher, OpenLogi and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
+  ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
+  publishes for it. Installs Docker Desktop the same way from Docker's update feed
+  ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
+  for each build.
 - Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
   Google Chrome, Docker, GitHub CLI and Microsoft repositories.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
@@ -154,6 +156,9 @@ the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/
 mouse and touchpad, power and screen blanking, sound, privacy, the first day of the week, the enabled extensions, the
 Files, Text Editor and Ptyxis (terminal) preferences, and the settings of ArcMenu, Dash to Panel, Burn My Windows,
 Tiling Shell, Bing Wallpaper and Battery Health Charging.
+Loading also resets any of these settings that are set on this machine but no longer saved, so a setting you put back
+to its default and saved with `make dump` goes back to its default everywhere you load it. Keys that hold runtime state
+rather than preferences are never reset.
 
 Some app settings cannot be symlinked either, because the app rewrites the file or the file holds names that differ
 per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores them from [`apps/`](apps):
@@ -169,8 +174,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
   so reboot yourself if it asks), Docker Desktop, balenaEtcher, OpenLogi and Wayland Scroll Factor, Homebrew, pipx
   tools, your GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages). It then removes
-  unused packages and old snap revisions, the same cleanup the installer ends with ([
-  `scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
+  unused packages and old snap revisions, the same cleanup the installer ends with
+  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
   not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
@@ -194,7 +199,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update, `gh` is logged in, the
   apps from GitHub releases are installed and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
-  <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory.
+  <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
+  command is written to the history as soon as it runs, so new terminals can find it straight away.
 
 `link.sh` links individual files rather than whole folders, so programs that write extra files into `~/.config` never
 write them into the repository.

@@ -28,23 +28,9 @@ firmware() {
   sudo fwupdmgr update --assume-yes --no-reboot-check || [ $? -eq 2 ]
 }
 
-# Docker Desktop is installed from a downloaded .deb, not a repository, so APT never upgrades it
 docker_desktop() {
   dpkg-query -W docker-desktop > /dev/null 2>&1 || { echo "Docker Desktop is not installed, skipping"; return; }
-  local installed_build latest_build
-  # The installed version ends in the build number, e.g. 4.89.0-238018
-  installed_build="$(dpkg-query -W -f='${Version}' docker-desktop)"
-  installed_build="${installed_build##*-}"
-  # The update feed links each release as .../amd64/<build>/docker-desktop-amd64.deb
-  latest_build="$(curl -fsSL https://desktop.docker.com/linux/main/amd64/appcast.xml \
-    | grep -oE 'amd64/[0-9]+/docker-desktop-amd64\.deb' | cut -d/ -f2 | sort -n | tail -1)"
-  if [ -n "$latest_build" ] && [ "$latest_build" -gt "$installed_build" ]; then
-    curl -fL "https://desktop.docker.com/linux/main/amd64/$latest_build/docker-desktop-amd64.deb" -o /tmp/docker-desktop-amd64.deb
-    sudo apt-get install -y /tmp/docker-desktop-amd64.deb
-    rm -f /tmp/docker-desktop-amd64.deb
-  else
-    echo "Docker Desktop is up to date (build $installed_build)"
-  fi
+  bash "$SCRIPT_DIR/docker-desktop.sh"
 }
 
 github_debs() {

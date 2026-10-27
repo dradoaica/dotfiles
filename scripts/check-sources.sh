@@ -24,10 +24,6 @@ check() {
 # Fetch only the first byte, so large files are not downloaded
 url_exists() { curl -fsSL --retry 2 --range 0-0 -o /dev/null "$1"; }
 
-docker_desktop_feed_has_build() {
-  curl -fsSL https://desktop.docker.com/linux/main/amd64/appcast.xml | grep -qE 'amd64/[0-9]+/docker-desktop-amd64\.deb'
-}
-
 jetbrains_toolbox_has_download() {
   curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
     | jq -e '.TBA[0].downloads.linux.link | strings'
@@ -49,7 +45,7 @@ check "Microsoft (packages-microsoft-prod.deb for $VERSION_ID)" \
   url_exists "https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb"
 
 echo "== Downloads"
-check "Docker Desktop update feed" docker_desktop_feed_has_build
+check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
 check "JetBrains Toolbox download link" jetbrains_toolbox_has_download
 nvm_installer="$(grep -oE 'https://raw.githubusercontent.com/nvm-sh/nvm/[^ ]+/install.sh' "$SCRIPT_DIR/packages.sh")"
 nvm_version="${nvm_installer#*nvm-sh/nvm/}"

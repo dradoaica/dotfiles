@@ -12,7 +12,7 @@ help: ## List the available targets
 install: ## Set up everything: packages, links, GNOME extensions and settings
 	bash scripts/install.sh
 
-update: ## Update packages, Homebrew, pipx tools, GNOME extensions, Rust and Node
+update: ## Update packages, firmware, Docker Desktop, GitHub-release apps, Homebrew, pipx, extensions, Rust, Node
 	bash scripts/update.sh
 
 packages: ## Add the repositories and install the packages

@@ -86,11 +86,26 @@ update() {
   "$gext" --filesystem update --user --yes
 }
 
+# Print each key in a dconf dump read from stdin, relative to the dumped directory (e.g. custom0/binding)
+dconf_keys() {
+  awk '/^\[/ { section = substr($0, 2, length($0) - 2); next }
+       /=/ { key = substr($0, 1, index($0, "=") - 1); print (section == "/" ? "" : section "/") key }'
+}
+
 load() {
+  local name path file key
   for name in "${!DCONF_PATHS[@]}"; do
-    if [ -f "$DCONF_DIR/$name.dconf" ]; then
-      dconf load "${DCONF_PATHS[$name]}" < "$DCONF_DIR/$name.dconf"
-    fi
+    path="${DCONF_PATHS[$name]}"
+    file="$DCONF_DIR/$name.dconf"
+    [ -f "$file" ] || continue
+    # dconf load only adds and changes keys. Reset the keys set here that are no longer saved, so a setting
+    # put back to its default on the machine that saved it goes back to its default here too.
+    while read -r key; do
+      dconf reset "$path$key"
+    done < <(LC_ALL=C comm -23 \
+      <(dconf dump "$path" | { grep -vE "$VOLATILE_KEYS" || true; } | dconf_keys | LC_ALL=C sort) \
+      <(dconf_keys < "$file" | LC_ALL=C sort))
+    dconf load "$path" < "$file"
   done
   if [ -f "$DCONF_DIR/shell.dconf" ]; then
     dconf load /org/gnome/shell/ < "$DCONF_DIR/shell.dconf"

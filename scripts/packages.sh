@@ -99,12 +99,7 @@ nvm alias default 24
 sudo snap install postman
 # Install and set up Docker Desktop
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-# Downloaded only once; update.sh installs newer builds
-if ! dpkg-query -W docker-desktop > /dev/null 2>&1; then
-  curl -fL https://desktop.docker.com/linux/main/amd64/docker-desktop-amd64.deb -o /tmp/docker-desktop-amd64.deb
-  sudo apt-get install -y /tmp/docker-desktop-amd64.deb
-  rm -f /tmp/docker-desktop-amd64.deb
-fi
+bash "$SCRIPT_DIR/docker-desktop.sh"
 # Send docker commands to Docker Desktop rather than to Docker Engine's root-owned socket,
 # and start Docker Desktop at login so that context always answers
 if ! docker context inspect desktop-linux > /dev/null 2>&1; then
