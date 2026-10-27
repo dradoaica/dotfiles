@@ -1,0 +1,74 @@
+# APT packages, installed by scripts/packages.sh. One package per line; a # starts a comment.
+
+# Building Flatpak apps
+flatpak-builder
+
+# Fonts and cursors
+fonts-inter
+fonts-inter-variable
+fonts-jetbrains-mono
+bibata-cursor-theme
+phinger-cursor-theme
+breeze-cursor-theme
+
+# Development tooling
+build-essential
+ca-certificates
+file
+fzf
+gh
+git
+gnupg2
+jq
+libfuse2t64
+net-tools
+pass
+pipx
+procps
+shellcheck
+
+# Languages
+clang
+default-jdk
+dotnet-sdk-10.0
+g++
+gcc
+golang-go
+php
+php-cli
+php-common
+php-curl
+php-mbstring
+php-xml
+php-zip
+python3-full
+python3-pip
+python3-pip-whl
+python3-venv
+ruby-full
+
+# Docker Engine and its tools (Docker Desktop comes from scripts/docker-desktop.sh)
+containerd.io
+docker-buildx-plugin
+docker-ce
+docker-ce-cli
+docker-compose-plugin
+
+# Applications
+clamav
+clamav-daemon
+clamtk
+deja-dup
+file-roller
+gnome-shell-extensions
+gnome-tweaks
+google-chrome-stable
+ksnip
+libreoffice
+nexis
+openrazer-meta
+polychromatic
+qbittorrent
+steam
+ulauncher
+vlc

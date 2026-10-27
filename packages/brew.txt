@@ -1,0 +1,6 @@
+# Homebrew formulae and casks, installed by scripts/packages.sh. One per line, as given to `brew install`.
+
+derailed/k9s/k9s
+helm
+norwoodj/tap/helm-docs
+--cask claude-code

@@ -11,6 +11,17 @@
 	prune = true
 [diff]
 	algorithm = histogram
+	# Show moved lines in a different colour from added and removed ones
+	colorMoved = default
+[branch]
+	# `git branch` lists the most recently committed-to branches first
+	sort = -committerdate
+[tag]
+	# v1.10 after v1.9, not after v1.1
+	sort = version:refname
+[commit]
+	# Show the diff being committed in the commit message editor
+	verbose = true
 [merge]
 	conflictStyle = zdiff3
 [rerere]

@@ -1,0 +1,4 @@
+# Flatpak apps from Flathub, installed by scripts/packages.sh. One application ID per line.
+
+com.github.dail8859.NotepadNext
+me.timschneeberger.GalaxyBudsClient

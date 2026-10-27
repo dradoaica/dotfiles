@@ -7,12 +7,9 @@
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-# <owner/repo> <package> <regex matching the release asset>
-PACKAGES=(
-  "AprilNEA/OpenLogi openlogi ^openlogi-v.*-linux-amd64\.deb$"
-  "balena-io/etcher balena-etcher ^balena-etcher_.*_amd64\.deb$"
-  "daniel-g-carrasco/wayland-scroll-factor wayland-scroll-factor ^wayland-scroll-factor_.*_amd64\.deb$"
-)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Lines of <owner/repo> <package> <regex matching the release asset>
+mapfile -t PACKAGES < <(grep -vE '^[[:space:]]*(#|$)' "$(dirname "$SCRIPT_DIR")/packages/github-debs.txt")
 
 check_only=false
 case "${1:-}" in

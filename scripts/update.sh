@@ -7,6 +7,8 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 apt_packages() {
   sudo apt-get update
@@ -99,23 +101,6 @@ dotfiles() {
   bash "$SCRIPT_DIR/link.sh" --check
 }
 
-failed=()
-# Run a step in a subshell with `set -e` in force (it would be ignored if the step ran
-# as an `if` or `||` condition), and remember it if it fails instead of stopping
-step() {
-  local name="$1" status
-  shift
-  echo "== $name"
-  set +e
-  (set -e; "$@")
-  status=$?
-  set -e
-  if [ "$status" -ne 0 ]; then
-    echo "!! $name failed (exit code $status)" >&2
-    failed+=("$name")
-  fi
-}
-
 step APT apt_packages
 step Snap snap_packages
 step Flatpak flatpak_packages
@@ -130,8 +115,4 @@ step Node node_js
 step Cleanup cleanup
 step Dotfiles dotfiles
 
-if [ "${#failed[@]}" -gt 0 ]; then
-  echo "Done, but these steps failed: ${failed[*]}. Scroll up for their errors." >&2
-  exit 1
-fi
-echo "Done. Log out and back in if GNOME extensions were updated."
+finish "Done. Log out and back in if GNOME extensions were updated."

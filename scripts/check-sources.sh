@@ -30,12 +30,15 @@ jetbrains_toolbox_has_download() {
 }
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
-# The same list packages.sh adds, so the two never drift apart
-while read -r ppa; do
+# The same list packages.sh adds (not the ones it removes), so the two never drift apart
+mapfile -t ppas < <(grep -oE '^[[:space:]]*sudo add-apt-repository -y ppa:[^ ]+' "$SCRIPT_DIR/packages.sh" | sed 's/.*ppa://')
+# Finding none means the search above no longer matches packages.sh, not that there is nothing to check
+check "found the PPAs in packages.sh (${#ppas[@]})" test "${#ppas[@]}" -gt 0
+for ppa in "${ppas[@]}"; do
   owner="${ppa%%/*}"
   name="${ppa#*/}"
   check "ppa:$ppa" url_exists "https://ppa.launchpadcontent.net/$owner/$name/ubuntu/dists/$VERSION_CODENAME/Release"
-done < <(grep -oE '^sudo add-apt-repository -y ppa:[^ ]+' "$SCRIPT_DIR/packages.sh" | sed 's/.*ppa://')
+done
 
 echo "== APT repositories"
 check "Docker ($VERSION_CODENAME)" url_exists "https://download.docker.com/linux/ubuntu/dists/$VERSION_CODENAME/Release"
@@ -47,9 +50,10 @@ check "Microsoft (packages-microsoft-prod.deb for $VERSION_ID)" \
 echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
 check "JetBrains Toolbox download link" jetbrains_toolbox_has_download
-nvm_installer="$(grep -oE 'https://raw.githubusercontent.com/nvm-sh/nvm/[^ ]+/install.sh' "$SCRIPT_DIR/packages.sh")"
-nvm_version="${nvm_installer#*nvm-sh/nvm/}"
-check "nvm installer (${nvm_version%%/*})" url_exists "$nvm_installer"
+nvm_tag="$(curl -fsSL ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} \
+  https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // empty')"
+check "nvm installer (latest release: ${nvm_tag:-not found})" \
+  url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"
 check "Flathub repository" url_exists https://flathub.org/repo/flathub.flatpakrepo
 check "Homebrew installer" url_exists https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 

@@ -21,7 +21,9 @@ development workstation.
 aware that it:
 
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
-- Needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
+- Needs `sudo`, runs a full `apt-get upgrade`, and takes a while. It runs in steps (sources, packages, Docker,
+  Kubernetes and so on); a step that fails does not stop the others, and the failed ones are listed at the end, so you
+  can fix them and run it again.
 - Installs balenaEtcher, OpenLogi and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
   ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
   publishes for it. Installs Docker Desktop the same way from Docker's update feed
@@ -81,6 +83,10 @@ work through [Post-Install](#post-install).
 ## What's Included
 
 ### Installed Automatically
+
+The packages are listed in [`packages/`](packages), one file per package manager: [`apt.txt`](packages/apt.txt),
+[`snap.txt`](packages/snap.txt), [`flatpak.txt`](packages/flatpak.txt), [`brew.txt`](packages/brew.txt) and
+[`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases.
 
 - **Package managers**: Flatpak (with Flathub) alongside APT and Snap, plus Homebrew.
 - **Fonts**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), from Ubuntu's
@@ -187,7 +193,15 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   ```
 
 - **Add a package** by creating a new folder in `home/`; `link.sh` picks up every folder.
+- **Install an app** by adding it to the matching list in [`packages/`](packages), then running `make packages`.
+- **Find what you installed by hand** with `make drift` (`make dump` runs it too). It lists the APT packages you
+  installed (not the ones Ubuntu did), snaps, Flatpak apps and Homebrew packages that are not in `packages/`, so a
+  fresh install would miss them. Add each one to its list, or to [`packages/ignore.txt`](packages/ignore.txt) to stop
+  reporting it.
 - **Shell additions** go in a new file in `home/bash/.bashrc.d/`, not in `.bashrc`, which stays Ubuntu's default.
+  For a program that prints shell code to load (like `brew shellenv` or `fzf --bash`), use
+  `cached_eval <name> <program> <command...>` from `00-cache.sh`: it keeps the output in `~/.cache/bashrc/` and only
+  runs the program again when it changes, which keeps new shells fast.
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
   removed, OpenLogi, default apps or Helm repositories, with `make dump`, then review `git diff` and commit.
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for

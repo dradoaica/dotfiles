@@ -1,0 +1,18 @@
+# Installed packages that scripts/drift.sh does not report, as extended regular expressions matched against the
+# whole name, prefixed with the package manager (apt:, snap:, flatpak: or brew:). One per line.
+
+# Installed with Ubuntu: language support, kernels, boot loader, drivers
+apt:(language-pack|hunspell|hyphen|mythes|gnome-user-docs|libreoffice-(help|l10n))-.*
+apt:(ibus-table|libchewing|libpinyin|libopencc|libm17n|m17n-db|libotf|wbritish).*
+apt:(linux|grub|shim|efibootmgr).*
+apt:(nvidia|libnvidia).*
+apt:ubuntu-.*
+
+# Pulled in or set up by the installer itself
+apt:packages-microsoft-prod
+apt:docker-desktop
+
+# Bases, runtimes and themes that snaps and Flatpak apps install for themselves, and the snaps Ubuntu ships
+snap:(bare|snapd|core[0-9]*)
+snap:(gnome-[0-9-]+|gtk-common-themes|mesa-[0-9]+|wine-platform-.*|gaming-graphics-.*|icon-theme-.*)
+snap:(firmware-updater|snap-store|snapd-desktop-integration|desktop-security-center|prompting-client)

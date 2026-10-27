@@ -1,0 +1,13 @@
+# Snaps, installed by scripts/packages.sh. One snap per line, followed by any `snap install` options.
+
+acrordrdc
+code --classic
+firefox
+gimp
+gitkraken --classic
+gnome-chess
+kubectl --classic
+microk8s --classic
+multipass
+postman
+rustup --classic

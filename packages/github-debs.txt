@@ -1,0 +1,6 @@
+# Apps published as .deb files on GitHub releases, installed and updated by scripts/github-debs.sh.
+# <owner/repo> <package> <regex matching the release asset>
+
+AprilNEA/OpenLogi openlogi ^openlogi-v.*-linux-amd64\.deb$
+balena-io/etcher balena-etcher ^balena-etcher_.*_amd64\.deb$
+daniel-g-carrasco/wayland-scroll-factor wayland-scroll-factor ^wayland-scroll-factor_.*_amd64\.deb$

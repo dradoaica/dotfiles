@@ -7,6 +7,4 @@ if [ -n "${HOMEBREW_PREFIX:-}" ]; then
   done
   unset completion
 fi
-if command -v gh > /dev/null; then
-  eval "$(gh completion -s bash)"
-fi
+cached_eval gh-completion gh gh completion -s bash
