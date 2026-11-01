@@ -12,7 +12,7 @@ source "$SCRIPT_DIR/lib.sh"
 
 apt_packages() {
   sudo apt-get update
-  sudo apt-get upgrade -y
+  sudo apt-get upgrade -y --with-new-pkgs
 }
 
 snap_packages() {
@@ -109,5 +109,14 @@ step Rust rust
 step Node node_js
 step Cleanup cleanup
 step Dotfiles dotfiles
+
+# Ubuntu creates this file when an update (a new kernel, glibc, systemd...) needs a restart to take effect
+# and lists the packages that asked for it in reboot-required.pkgs
+if [ -f /var/run/reboot-required ]; then
+  echo "Restart to finish the update."
+  if [ -s /var/run/reboot-required.pkgs ]; then
+    echo "Needed by: $(sort -u /var/run/reboot-required.pkgs | paste -sd' ')"
+  fi
+fi
 
 finish "Done. Log out and back in if GNOME extensions were updated."

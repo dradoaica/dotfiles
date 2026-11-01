@@ -8,6 +8,10 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+# The jobs only read the repository
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: bash
@@ -31,10 +35,11 @@ jobs:
     container: ubuntu:26.04
     steps:
       - uses: actions/checkout@v7
-      - name: Install shellcheck
-        run: apt-get update && apt-get install -y shellcheck
+      - name: Install make and shellcheck
+        run: apt-get update && apt-get install -y make shellcheck
       - name: Shellcheck
-        run: shellcheck scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile
+        # The same files as `make lint` locally
+        run: make lint
 
   link:
     runs-on: ubuntu-latest
@@ -67,6 +72,10 @@ jobs:
 
   secrets:
     runs-on: ubuntu-latest
+    # gitleaks comments on pull requests that add a secret
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
         with:

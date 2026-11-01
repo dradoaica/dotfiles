@@ -77,7 +77,7 @@ sources() {
 
 upgrade() {
   sudo apt-get update
-  sudo apt-get upgrade -y
+  sudo apt-get upgrade -y --with-new-pkgs
   sudo snap refresh
   sudo flatpak update -y
 }
@@ -129,7 +129,7 @@ node_js() {
   # The newest nvm release; PROFILE=/dev/null stops the installer editing ~/.bashrc, since
   # home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
   local nvm_tag
-  nvm_tag="$(curl -fsSL https://api.github.com/repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name')"
+  nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name')"
   curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$nvm_tag/install.sh" | PROFILE=/dev/null bash
   export NVM_DIR="$HOME/.nvm"
   # nvm is not written for `set -u`
@@ -233,13 +233,17 @@ jetbrains_toolbox() {
     echo "JetBrains Toolbox is already installed"
     return
   fi
-  local url
+  local url archive
   url=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
     | jq -r '.TBA[0].downloads.linux.link')
+  archive="$(mktemp --suffix=.tar.gz)"
+  # The step runs in a subshell, so this trap fires when the step ends, even if a command below fails.
+  # Expanded now: $archive is local, and gone by the time the trap runs.
+  # shellcheck disable=SC2064
+  trap "rm -f '$archive'" EXIT
   sudo mkdir -p /opt/jetbrains-toolbox
-  curl -fL "$url" -o /tmp/jetbrains-toolbox.tar.gz
-  sudo tar -xzf /tmp/jetbrains-toolbox.tar.gz -C /opt/jetbrains-toolbox --strip-components=1
-  rm -f /tmp/jetbrains-toolbox.tar.gz
+  curl -fL "$url" -o "$archive"
+  sudo tar -xzf "$archive" -C /opt/jetbrains-toolbox --strip-components=1
   sudo chmod +x /opt/jetbrains-toolbox/bin/jetbrains-toolbox
   # First launch registers the desktop entry and autostart
   /opt/jetbrains-toolbox/bin/jetbrains-toolbox &

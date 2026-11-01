@@ -58,7 +58,18 @@ install_latest() {
   sudo apt-get install -y "$deb"
 }
 
+# Keep going after an app fails, so one broken release does not hold back the others
+failed=()
 for entry in "${PACKAGES[@]}"; do
   IFS=' ' read -r repo package pattern <<< "$entry"
-  install_latest "$repo" "$package" "$pattern"
+  # In a subshell with `set -e` in force, which it would not be as an `||` condition
+  set +e
+  (set -e; install_latest "$repo" "$package" "$pattern")
+  status=$?
+  set -e
+  [ "$status" -eq 0 ] || failed+=("$package")
 done
+if [ "${#failed[@]}" -gt 0 ]; then
+  echo "Failed: ${failed[*]}" >&2
+  exit 1
+fi
