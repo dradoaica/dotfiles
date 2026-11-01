@@ -18,6 +18,9 @@ load_homebrew() {
   for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
     if [ -x "$brew" ]; then
       eval "$("$brew" shellenv)"
+      # Homebrew 7 asks before `brew install` and `brew upgrade` by default; scripts must not stop for that.
+      # (Older versions ignore the variable, but would reject a --yes flag.)
+      export HOMEBREW_NO_ASK=1
       return 0
     fi
   done
