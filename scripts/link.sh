@@ -82,6 +82,11 @@ done
 if [ "$backed_up" = true ]; then
   echo "Replaced files were saved in $BACKUP_DIR"
 fi
+# Programs trust an existing icon cache unless the top folder changed, so they would not find a linked icon
+icon_cache="$HOME/.local/share/icons/hicolor/icon-theme.cache"
+if [ "$mode" = link ] && [ -f "$icon_cache" ] && command -v gtk-update-icon-cache > /dev/null; then
+  gtk-update-icon-cache --force --ignore-theme-index --quiet "${icon_cache%/*}"
+fi
 if [ "$mode" = check ]; then
   if [ "$problems" -gt 0 ]; then
     echo "$problems file(s) not linked; run scripts/link.sh to fix" >&2

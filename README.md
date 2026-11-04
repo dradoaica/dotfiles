@@ -145,6 +145,7 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 | `k9s`       | `~/.config/k9s/` aliases and plugins                                                 |
 | `ulauncher` | `~/.config/ulauncher/settings.json`                                                  |
 | `vscode`    | `~/.config/Code/User/settings.json`                                                  |
+| `wsf`       | Repaired Wayland Scroll Factor icon: the package's own SVG does not load in GNOME    |
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
