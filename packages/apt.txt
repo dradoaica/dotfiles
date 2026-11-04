@@ -61,6 +61,7 @@ clamtk
 deja-dup
 file-roller
 gnome-shell-extensions
+gnome-snapshot
 gnome-tweaks
 google-chrome-stable
 gstreamer1.0-fdkaac  # AAC audio playback
@@ -70,6 +71,7 @@ nexis
 openrazer-meta
 polychromatic
 qbittorrent
+remmina
 steam
 ulauncher
 vlc
