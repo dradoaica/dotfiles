@@ -256,6 +256,13 @@ services() {
   sudo systemctl enable --now clamav-freshclam
 }
 
+# System files that cannot be symlinked from home/
+udev_rules() {
+  sudo install -m 0644 -t /etc/udev/rules.d "$ROOT_DIR"/system/udev/*.rules
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger --subsystem-match=hidraw
+}
+
 github_releases() {
   # OpenLogi replaces Solaar, which both drive the same Logitech devices
   if dpkg -s solaar > /dev/null 2>&1; then
@@ -286,6 +293,7 @@ step Kubernetes kubernetes
 step Homebrew homebrew
 step "JetBrains Toolbox" jetbrains_toolbox
 step Services services
+step "udev rules" udev_rules
 step "GitHub releases" github_releases
 step Cleanup cleanup
 

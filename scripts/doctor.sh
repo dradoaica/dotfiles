@@ -25,6 +25,12 @@ microk8s_not_started_at_boot() {
 }
 kubeconfig_private() { [ ! -e "$HOME/.kube/config" ] || [ "$(stat -c '%a' "$HOME/.kube/config")" = 600 ]; }
 wsf_enabled() { wsf status | grep -q '^enabled: yes'; }
+udev_rules_installed() {
+  local rule
+  for rule in "$ROOT_DIR"/system/udev/*.rules; do
+    cmp -s "$rule" "/etc/udev/rules.d/${rule##*/}" || return 1
+  done
+}
 extensions_enabled() {
   local enabled uuid
   enabled="$(gnome-extensions list --enabled)"
@@ -51,6 +57,9 @@ check "~/.kube/config is readable only by you" kubeconfig_private
 echo "== Security"
 check "ClamAV virus definitions are kept up to date (clamav-freshclam)" service_running clamav-freshclam
 check "GitHub CLI is logged in" gh auth status
+
+echo "== Hardware"
+check "the udev rules in system/udev/ are installed" udev_rules_installed
 
 echo "== Apps"
 check "OpenLogi is installed" installed openlogi

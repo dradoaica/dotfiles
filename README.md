@@ -42,6 +42,7 @@ aware that it:
   minimised to the tray (the Dashboard does not open). Docker Engine is installed too, but disabled, since Docker
   Desktop runs its own engine. Start it with `sudo systemctl start docker` if you need it.
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
+- Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
   can store credentials. Replace it with a passphrase-protected key if that matters to you.
 
@@ -97,7 +98,8 @@ Those files are the full, current list; this is an overview.
 - **Apps**: browsers, LibreOffice, media, graphics and screenshot tools, a BitTorrent client, backups (Déjà Dup),
   antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher) and games.
 - **Hardware**: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech devices (it replaces Solaar, which the
-  installer removes if it finds it), OpenRazer and Polychromatic for Razer, and Galaxy Buds Client.
+  installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and a udev rule
+  ([`system/udev/`](system/udev)) that lets Rapoo's [web driver](https://hub.rapoo.com) reach Rapoo mice in Chrome.
 - **Touchpad**: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
   speed from the next login.
 - **Fonts and cursors**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/);
@@ -208,7 +210,7 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
   MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update, `gh` is logged in, the
-  apps from GitHub releases are installed and every GNOME extension is enabled.
+  udev rules are installed, the apps from GitHub releases are installed and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away.
