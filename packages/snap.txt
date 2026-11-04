@@ -1,6 +1,5 @@
 # Snaps, installed by scripts/packages.sh. One snap per line, followed by any `snap install` options.
 
-acrordrdc
 code --classic
 firefox
 gimp
