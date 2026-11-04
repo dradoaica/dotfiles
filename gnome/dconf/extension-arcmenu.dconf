@@ -1,5 +1,5 @@
 [/]
-application-shortcuts=[{'id': 'org.gnome.Settings.desktop'}, {'id': 'snap-store_snap-store.desktop'}, {'id': 'update-manager.desktop'}, {'id': 'net.nokyan.Resources.desktop'}, {'id': 'org.gnome.Ptyxis.desktop'}, {'id': 'org.gnome.tweaks.desktop'}]
+application-shortcuts=[{'id': 'org.gnome.Settings.desktop'}, {'id': 'snap-store_snap-store.desktop', 'icon': 'org.gnome.Software-symbolic'}, {'id': 'update-manager.desktop'}, {'id': 'net.nokyan.Resources.desktop'}, {'id': 'org.gnome.Ptyxis.desktop'}, {'id': 'org.gnome.tweaks.desktop'}]
 apps-show-extra-details=false
 arcmenu-extra-categories-links=[(0, false), (1, false), (2, false), (3, false), (4, false)]
 avatar-style='Round'
