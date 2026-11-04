@@ -75,7 +75,7 @@ installed `make`; run `make` on its own to list them.
 | `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.       |
 | `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.  |
 | `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.              |
-| `scripts/apps.sh load`        | `make load`       | Applies the OpenLogi config, default apps and Helm repositories. |
+| `scripts/apps.sh load`        | `make load`       | Applies OpenLogi, default apps, VS Code and Helm settings.       |
 
 When it finishes, **log out and back in** so the new group membership, fonts and GNOME extensions take effect, then
 work through [Post-Install](#post-install).
@@ -150,8 +150,10 @@ GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) sa
 the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
 [`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard layouts, keyboard shortcuts, window manager,
 mouse and touchpad, power and screen blanking, sound, privacy, the first day of the week, the enabled extensions, the
-Files, Text Editor and Ptyxis (terminal) preferences, and the settings of ArcMenu, Dash to Panel, Burn My Windows,
-Tiling Shell, Bing Wallpaper and Battery Health Charging.
+apps pinned to the panel, the Files, Text Editor and Ptyxis (terminal) preferences, Déjà Dup's backup settings (not
+the backup folder, which is named after the machine), and the settings of ArcMenu, Dash to Panel, Burn My Windows,
+Tiling Shell, Bing Wallpaper, Battery Health Charging, AppIndicator, Desktop Icons, Compiz windows effect and User
+Themes.
 Loading also resets any of these settings that are set on this machine but no longer saved, so a setting you put back
 to its default and saved with `make dump` goes back to its default everywhere you load it. Keys that hold runtime state
 rather than preferences are never reset.
@@ -163,16 +165,17 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
 - **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
   are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
+- **VS Code extensions**: the list from `code --list-extensions`; loading installs the ones that are missing.
 - **Helm repositories**: the names and URLs from `helm repo list`, added again with `helm repo add`.
 
 ### Day to Day
 
 - **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
   so reboot yourself if it asks), Docker Desktop, balenaEtcher, OpenLogi and Wayland Scroll Factor, Homebrew, pipx
-  tools, your GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages). It then removes
-  unused packages and old snap revisions, the same cleanup the installer ends with
-  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
-  not stop the others; the failed ones are listed at the end.
+  tools, your GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages and removing older
+  24.x releases; other major versions stay). It then removes unused packages and old snap revisions, the same cleanup
+  the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer
+  linked. A step that fails does not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -191,9 +194,12 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Shell additions** go in a new file in `home/bash/.bashrc.d/`, not in `.bashrc`, which stays Ubuntu's default.
   For a program that prints shell code to load (like `brew shellenv` or `fzf --bash`), use
   `cached_eval <name> <program> <command...>` from `00-cache.sh`: it keeps the output in `~/.cache/bashrc/` and only
-  runs the program again when it changes, which keeps new shells fast.
+  runs the program again when it changes, which keeps new shells fast. `.profile` also loads `brew.sh` and `nvm.sh`,
+  so the GNOME session and the apps it starts find Homebrew and Node after the next login (cron and `ssh host command`
+  do not read `.profile`, so they still do not).
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
-  removed, OpenLogi, default apps or Helm repositories, with `make dump`, then review `git diff` and commit.
+  removed, OpenLogi, default apps, VS Code extensions or Helm repositories, with `make dump`, then review `git diff` and
+  commit.
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
   example after a program overwrote its symlink. `make link` fixes them.
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
@@ -226,11 +232,14 @@ Keep anything private or specific to one machine out of the repository:
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
   GitHub CLI and Chrome repositories, the Docker Desktop, JetBrains Toolbox, nvm, Flathub and Homebrew
   downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run catches a
-  source that broke while nothing in this repository changed. Run the same check locally with `make sources`.
+  source that broke while nothing in this repository changed. It also checks that those sources still offer every
+  package in `packages/`, so a renamed or removed package shows up here rather than during an install. Run the same
+  check locally with `make sources`.
 
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up and that a
-  second run changes nothing, starts an interactive shell with the linked `.bashrc`, then unlinks everything again.
+  second run changes nothing, starts an interactive shell with the linked `.bashrc` and login shells with the linked
+  `.profile`, then unlinks everything again.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
   up in a tracked config file is caught before it stays public.
 

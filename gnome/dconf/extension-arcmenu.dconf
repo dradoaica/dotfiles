@@ -38,7 +38,6 @@ pinned-apps=[{'id': 'google-chrome.desktop'}, {'id': 'org.gnome.Nautilus.desktop
 pop-folders-data={'Library Home': 'Library Home'}
 position-in-panel='Left'
 prefs-visible-page=0
-recently-installed-apps=['retroarch_retroarch.desktop', 'software-properties-gtk.desktop']
 search-entry-border-radius=(true, 25)
 shortcut-icon-type='Full_Color'
 show-activities-button=false

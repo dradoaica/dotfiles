@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install curl and jq
         run: apt-get update && apt-get install -y ca-certificates curl jq
-      - name: Check the PPAs, repositories, downloads and GitHub releases the installer uses
+      - name: Check the PPAs, repositories, downloads, GitHub releases and packages the installer uses
         run: bash scripts/check-sources.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,6 +63,11 @@ jobs:
         run: |
           export HOME="$RUNNER_TEMP/home"
           bash -ic 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
+      - name: Start login shells with the linked files, as the GNOME session does
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          bash -lc 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
+          sh -lc 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
       - name: Unlink
         run: |
           export HOME="$RUNNER_TEMP/home"

@@ -19,5 +19,8 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     . "$NVM_DIR/nvm.sh"
   fi
   unset nvm_default nvm_default_dir
-  [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+  # Only for terminals: .profile also loads this file, possibly from sh, which cannot read the completion
+  case $- in
+    *i*) [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion" ;;
+  esac
 fi

@@ -29,12 +29,17 @@ declare -A DCONF_PATHS=(
   [mutter]=/org/gnome/mutter/
   [power]=/org/gnome/settings-daemon/plugins/power/
   [shell-keybindings]=/org/gnome/shell/keybindings/
+  [deja-dup]=/org/gnome/deja-dup/
+  [extension-appindicator]=/org/gnome/shell/extensions/appindicator/
   [extension-arcmenu]=/org/gnome/shell/extensions/arcmenu/
   [extension-battery-health-charging]=/org/gnome/shell/extensions/Battery-Health-Charging/
   [extension-bingwallpaper]=/org/gnome/shell/extensions/bingwallpaper/
   [extension-burn-my-windows]=/org/gnome/shell/extensions/burn-my-windows/
+  [extension-compiz-windows-effect]=/org/gnome/shell/extensions/com/github/hermes83/compiz-windows-effect/
   [extension-dash-to-panel]=/org/gnome/shell/extensions/dash-to-panel/
+  [extension-ding]=/org/gnome/shell/extensions/ding/
   [extension-tilingshell]=/org/gnome/shell/extensions/tilingshell/
+  [extension-user-theme]=/org/gnome/shell/extensions/user-theme/
   [nautilus]=/org/gnome/nautilus/preferences/
   [ptyxis]=/org/gnome/Ptyxis/
   [text-editor]=/org/gnome/TextEditor/
@@ -44,15 +49,23 @@ declare -A DCONF_PATHS=(
 VOLATILE_KEYS=(
   active-profile
   bing-json
+  folder
   last-extension-version
   last-prefs-version
   last-save-directory
+  last-version
+  last-version-name-installed
   migrated-gtk-settings
   mru-sources
   numlock-state
+  periodic-timestamp
   prefs-open-count
+  prompt-check
+  recently-installed-apps
   selected-image
   state
+  window-height
+  window-width
 )
 # Matches a "key=value" line of a dconf dump for any of them
 VOLATILE_PATTERN="^($(IFS='|'; echo "${VOLATILE_KEYS[*]}"))="
@@ -62,8 +75,14 @@ dump() {
   for name in "${!DCONF_PATHS[@]}"; do
     dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_PATTERN" || true; } > "$DCONF_DIR/$name.dconf"
   done
-  # Only the list of enabled extensions from /org/gnome/shell/, not the whole tree
-  printf '[/]\nenabled-extensions=%s\n' "$(dconf read /org/gnome/shell/enabled-extensions)" > "$DCONF_DIR/shell.dconf"
+  # Only the enabled extensions and the apps pinned to the panel from /org/gnome/shell/, not the whole tree
+  local key value
+  echo '[/]' > "$DCONF_DIR/shell.dconf"
+  for key in enabled-extensions favorite-apps; do
+    # Empty if it was never changed from its default, and `dconf load` rejects a key without a value
+    value="$(dconf read "/org/gnome/shell/$key")"
+    [ -z "$value" ] || echo "$key=$value" >> "$DCONF_DIR/shell.dconf"
+  done
   echo "Saved GNOME settings to $DCONF_DIR"
   if [ -d "$USER_EXTENSIONS_DIR" ]; then
     find "$USER_EXTENSIONS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort > "$EXTENSIONS_FILE"

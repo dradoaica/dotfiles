@@ -85,6 +85,14 @@ node_js() {
     nvm install 24 --reinstall-packages-from=default
   fi
   nvm alias default 24
+  # Remove the older Node 24 releases; other major versions stay. nvm refuses to remove the active version,
+  # which a parent shell's PATH can make one of the old ones, so switch to the newest first.
+  nvm use --silent "$latest"
+  local version
+  for version in "$NVM_DIR"/versions/node/v24.*; do
+    version="${version##*/}"
+    [ "$version" = "$latest" ] || nvm uninstall "$version"
+  done
 }
 
 cleanup() {
@@ -119,4 +127,4 @@ if [ -f /var/run/reboot-required ]; then
   fi
 fi
 
-finish "Done. Log out and back in if GNOME extensions were updated."
+finish "Done. Log out and back in if GNOME extensions or Node were updated."

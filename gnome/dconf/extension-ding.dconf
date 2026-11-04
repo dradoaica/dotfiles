@@ -1,0 +1,15 @@
+[/]
+add-volumes-opposite=true
+check-x11wayland=true
+dark-text-in-labels=false
+icon-size='standard'
+keep-arranged=false
+keep-stacked=false
+show-home=true
+show-link-emblem=true
+show-network-volumes=false
+show-trash=true
+show-volumes=true
+sort-special-folders=false
+start-corner='top-left'
+use-nemo=false

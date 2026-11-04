@@ -90,7 +90,6 @@ position-in-panel='Left'
 prefs-opened=false
 prefs-visible-page=0
 primary-monitor='DEL-G5SL0P3'
-recently-installed-apps=['retroarch_retroarch.desktop', 'software-properties-gtk.desktop']
 search-entry-border-radius=(true, 25)
 secondarymenu-contains-appmenu=true
 secondarymenu-contains-showdetails=false

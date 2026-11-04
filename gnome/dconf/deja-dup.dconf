@@ -1,0 +1,8 @@
+[/]
+backend='google'
+delete-after=0
+periodic-period=7
+
+[google]
+
+[local]

@@ -31,3 +31,18 @@ fi
 if [ -d "$HOME/.local/share/JetBrains/Toolbox/scripts" ] ; then
     PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
 fi
+
+# Homebrew and the default Node. .bashrc stops early unless the shell is interactive, and the GNOME session and
+# the apps it starts get their PATH from a login shell that is not, so load the same files for them here.
+case $- in
+    *i*) ;;
+    *)
+        for rc in 00-cache brew nvm; do
+            if [ -r "$HOME/.bashrc.d/$rc.sh" ]; then
+                # shellcheck source=/dev/null
+                . "$HOME/.bashrc.d/$rc.sh"
+            fi
+        done
+        unset rc
+        ;;
+esac

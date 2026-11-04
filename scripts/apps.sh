@@ -1,7 +1,7 @@
 #!/bin/bash
 # Save or restore app settings that cannot be symlinked: the apps rewrite the files, or the
 # files hold machine-specific names. They are kept in apps/.
-# Usage: apps.sh dump   save the OpenLogi config, default apps and Helm repositories into the repository
+# Usage: apps.sh dump   save the OpenLogi config, default apps, VS Code extensions and Helm repositories
 #        apps.sh load   apply them to this machine
 
 set -euo pipefail
@@ -15,6 +15,7 @@ BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 OPENLOGI_CONFIG="$HOME/.config/openlogi/config.toml"
 MIMEAPPS="$HOME/.config/mimeapps.list"
 DEFAULT_APPS_FILE="$APPS_DIR/default-apps.txt"
+VSCODE_EXTENSIONS_FILE="$APPS_DIR/vscode-extensions.txt"
 HELM_REPOS_FILE="$APPS_DIR/helm-repositories.txt"
 
 # Where desktop entries are installed (user, system, snap, Flatpak)
@@ -29,6 +30,8 @@ DESKTOP_DIRS=(
 
 # Homebrew installs helm
 load_homebrew || true
+# Snaps install their commands here (VS Code is one), and on a fresh install this shell started before they existed
+export PATH="$PATH:/snap/bin"
 
 dump() {
   mkdir -p "$APPS_DIR"
@@ -45,6 +48,14 @@ dump() {
     awk '/^\[/ { section = $0; next } section == "[Default Applications]" && /=/' "$MIMEAPPS" \
       | sed -E 's/^(.*=jetbrains-[a-z]+)-[0-9a-f-]{36}\.desktop$/\1-*.desktop/' > "$DEFAULT_APPS_FILE"
     echo "Saved the default apps"
+  fi
+
+  if command -v code > /dev/null; then
+    local extensions
+    # Read first, so a failure cannot empty the saved list
+    extensions="$(code --list-extensions)"
+    sort <<< "$extensions" > "$VSCODE_EXTENSIONS_FILE"
+    echo "Saved the VS Code extensions"
   fi
 
   if command -v helm > /dev/null; then
@@ -92,6 +103,18 @@ load() {
       fi
     done < "$DEFAULT_APPS_FILE"
     echo "Loaded the default apps"
+  fi
+
+  if [ -s "$VSCODE_EXTENSIONS_FILE" ] && command -v code > /dev/null; then
+    local installed extension
+    installed="$(code --list-extensions)"
+    while read -r extension; do
+      [ -n "$extension" ] || continue
+      grep -qixF "$extension" <<< "$installed" && continue
+      # Keep going after a failure, and stop `code` reading the rest of the list from stdin
+      code --install-extension "$extension" < /dev/null || echo "Could not install the VS Code extension $extension" >&2
+    done < "$VSCODE_EXTENSIONS_FILE"
+    echo "Loaded the VS Code extensions"
   fi
 
   if [ -s "$HELM_REPOS_FILE" ] && command -v helm > /dev/null; then
