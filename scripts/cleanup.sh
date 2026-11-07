@@ -12,4 +12,3 @@ snap list --all | awk '/disabled/{print $1, $3}' | while IFS=' ' read -r snap re
   sudo snap remove --revision="$rev" "$snap"
 done
 sudo flatpak uninstall --unused -y
-sudo flatpak repair

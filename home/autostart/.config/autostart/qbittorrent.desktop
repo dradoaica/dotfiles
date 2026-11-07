@@ -1,8 +1,10 @@
 [Desktop Entry]
 Type=Application
-Exec=bash -c "sleep 5 && qbittorrent"
+Exec=qbittorrent
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
+# Start 5 seconds after login
+X-GNOME-Autostart-Delay=5
 Name=qBittorrent
 Comment=Start qBittorrent

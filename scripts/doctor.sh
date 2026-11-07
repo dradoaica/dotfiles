@@ -31,6 +31,22 @@ udev_rules_installed() {
     cmp -s "$rule" "/etc/udev/rules.d/${rule##*/}" || return 1
   done
 }
+clamav_daemon_disabled() { service_disabled clamav-daemon.socket && service_disabled clamav-daemon.service; }
+# Rules in /etc/udev/rules.d/ that neither this repository, a package nor snapd installed, which a fresh install
+# would not have
+no_unmanaged_udev_rules() {
+  local rule unmanaged=0
+  for rule in /etc/udev/rules.d/*.rules; do
+    [ -e "$rule" ] || continue
+    case "${rule##*/}" in 70-snap.*) continue ;; esac
+    if [ -e "$ROOT_DIR/system/udev/${rule##*/}" ] || dpkg -S "$rule" > /dev/null 2>&1; then
+      continue
+    fi
+    echo "not managed: $rule" >&2
+    unmanaged=1
+  done
+  return "$unmanaged"
+}
 extensions_enabled() {
   local enabled uuid
   enabled="$(gnome-extensions list --enabled)"
@@ -56,10 +72,12 @@ check "~/.kube/config is readable only by you" kubeconfig_private
 
 echo "== Security"
 check "ClamAV virus definitions are kept up to date (clamav-freshclam)" service_running clamav-freshclam
+check "the ClamAV daemon does not run in the background" clamav_daemon_disabled
 check "GitHub CLI is logged in" gh auth status
 
 echo "== Hardware"
 check "the udev rules in system/udev/ are installed" udev_rules_installed
+check "every udev rule in /etc/udev/rules.d/ comes from system/udev/, a package or snapd" no_unmanaged_udev_rules
 
 echo "== Apps"
 check "OpenLogi is installed" installed openlogi

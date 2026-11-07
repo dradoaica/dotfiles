@@ -28,7 +28,7 @@ aware that it:
   ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
   publishes for it. Installs Docker Desktop the same way from Docker's update feed
   ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
-  for each build.
+  for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes next to each download.
 - Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
   Google Chrome, Docker and GitHub CLI repositories. .NET comes from Ubuntu's own archive.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
@@ -42,7 +42,8 @@ aware that it:
   login. Start it from the app menu or with `systemctl --user start docker-desktop`; it opens in the tray (the
   Dashboard does not open). Docker Engine is installed too, but disabled, since Docker Desktop runs its own engine.
   Start it with `sudo systemctl start docker` if you need it.
-- Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
+- Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date, and disables the ClamAV daemon, which
+  keeps about 1 GB of signatures in memory. ClamTk scans on demand without it.
 - Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
   can store credentials. Replace it with a passphrase-protected key if that matters to you.
@@ -150,7 +151,7 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 | `vscode`    | `~/.config/Code/User/settings.json`                                                  |
 
 GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
-the repository: the user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
+the repository: the enabled user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
 [`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard layouts, keyboard shortcuts, window manager,
 mouse and touchpad, power and screen blanking, sound, privacy, the first day of the week, the enabled extensions, the
 apps pinned to the panel, the Files, Text Editor and Ptyxis (terminal) preferences, Déjà Dup's backup settings (not
@@ -209,8 +210,9 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   `~/.dotfiles-backup/` if you want them back.
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
-  MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update, `gh` is logged in, the
-  udev rules are installed, the apps from GitHub releases are installed and every GNOME extension is enabled.
+  MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update and its daemon stays off,
+  `gh` is logged in, the udev rules are installed and no others were added by hand, the apps from GitHub releases are
+  installed and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away.
@@ -288,6 +290,14 @@ sudo ubuntu-drivers install nvidia-driver-595-open
 ```
 
 ## Troubleshooting
+
+### A Flatpak App Does Not Start
+
+If an app fails after an interrupted update or a full disk, check and fix the Flatpak installation:
+
+```bash
+sudo flatpak repair
+```
 
 ### Login Screen Uses the Wrong Monitor Layout
 

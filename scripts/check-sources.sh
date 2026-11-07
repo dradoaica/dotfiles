@@ -50,7 +50,7 @@ brew_exists() {
 
 jetbrains_toolbox_has_download() {
   curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
-    | jq -e '.TBA[0].downloads.linux.link | strings'
+    | jq -e '.TBA[0].downloads.linux | (.link | strings) and (.checksumLink | strings)'
 }
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
@@ -72,7 +72,7 @@ check "Google Chrome" url_exists https://dl.google.com/linux/chrome-stable/deb/d
 
 echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
-check "JetBrains Toolbox download link" jetbrains_toolbox_has_download
+check "JetBrains Toolbox download link and checksum" jetbrains_toolbox_has_download
 nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // empty')"
 check "nvm installer (latest release: ${nvm_tag:-not found})" \
   url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"

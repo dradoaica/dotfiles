@@ -18,30 +18,39 @@ prerequisites() {
   sudo apt-get install -y "${PREREQUISITES[@]}"
 }
 
-# add_keyed_repository <name> <signing key URL> <keyring file> <source>: save the repository's signing key
-# and write /etc/apt/sources.list.d/<name>.list, so apt trusts that key for this repository only
-add_keyed_repository() {
-  local name="$1" key_url="$2" keyring="$3" source="$4"
-  sudo curl -fsSL "$key_url" -o "$keyring"
-  sudo chmod a+r "$keyring"
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=$keyring] $source" \
-    | sudo tee "/etc/apt/sources.list.d/$name.list" > /dev/null
+# write_sources <name> <URI> <suite> <components> <keyring file>: write /etc/apt/sources.list.d/<name>.sources in
+# the deb822 format, so apt trusts that key for this repository only, and remove the one-line <name>.list that
+# earlier versions of this script wrote
+write_sources() {
+  local name="$1" uri="$2" suite="$3" components="$4" keyring="$5"
+  sudo rm -f "/etc/apt/sources.list.d/$name.list"
+  sudo tee "/etc/apt/sources.list.d/$name.sources" > /dev/null <<EOF
+Types: deb
+URIs: $uri
+Suites: $suite
+Components: $components
+Architectures: $(dpkg --print-architecture)
+Signed-By: $keyring
+EOF
 }
 
-# Google Chrome's repository, written as the same .sources file the Chrome package keeps up to date
-# (it migrates an older google-chrome.list into it)
+# add_keyed_repository <name> <signing key URL> <keyring file> <URI> <suite> <components>: save the repository's
+# signing key and write its sources file
+add_keyed_repository() {
+  local name="$1" key_url="$2" keyring="$3"
+  shift 3
+  sudo curl -fsSL "$key_url" -o "$keyring"
+  sudo chmod a+r "$keyring"
+  write_sources "$name" "$@" "$keyring"
+}
+
+# Google Chrome's repository, written as the same .sources file the Chrome package keeps up to date. Its key is
+# published armored, so dearmor it rather than saving it as it is.
 add_chrome_repository() {
   curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
     | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
-  sudo rm -f /etc/apt/sources.list.d/google-chrome.list
-  sudo tee /etc/apt/sources.list.d/google-chrome.sources > /dev/null <<'EOF'
-Types: deb
-URIs: https://dl.google.com/linux/chrome-stable/deb/
-Suites: stable
-Components: main
-Architectures: amd64
-Signed-By: /usr/share/keyrings/google-chrome.gpg
-EOF
+  write_sources google-chrome https://dl.google.com/linux/chrome-stable/deb/ stable main \
+    /usr/share/keyrings/google-chrome.gpg
 }
 
 sources() {
@@ -56,9 +65,9 @@ sources() {
 
   sudo install -m 0755 -d /usr/share/keyrings /etc/apt/keyrings
   add_keyed_repository docker https://download.docker.com/linux/ubuntu/gpg /etc/apt/keyrings/docker.asc \
-    "https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable"
+    https://download.docker.com/linux/ubuntu "$VERSION_CODENAME" stable
   add_keyed_repository github-cli https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-    /etc/apt/keyrings/githubcli-archive-keyring.gpg "https://cli.github.com/packages stable main"
+    /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages stable main
   add_chrome_repository
 
   sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -232,9 +241,12 @@ jetbrains_toolbox() {
     echo "JetBrains Toolbox is already installed"
     return
   fi
-  local url archive
-  url=$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
-    | jq -r '.TBA[0].downloads.linux.link')
+  local download url checksum archive
+  download="$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
+    | jq -c '.TBA[0].downloads.linux')"
+  url="$(jq -r '.link' <<< "$download")"
+  # JetBrains publishes a SHA-256 file ("<hash> *<file name>") next to each download
+  checksum="$(curl -fsSL "$(jq -r '.checksumLink' <<< "$download")" | awk '{ print $1 }')"
   archive="$(mktemp --suffix=.tar.gz)"
   # The step runs in a subshell, so this trap fires when the step ends, even if a command below fails.
   # Expanded now: $archive is local, and gone by the time the trap runs.
@@ -242,6 +254,7 @@ jetbrains_toolbox() {
   trap "rm -f '$archive'" EXIT
   sudo mkdir -p /opt/jetbrains-toolbox
   curl -fL "$url" -o "$archive"
+  echo "$checksum  $archive" | sha256sum --check --quiet
   sudo tar -xzf "$archive" -C /opt/jetbrains-toolbox --strip-components=1
   sudo chmod +x /opt/jetbrains-toolbox/bin/jetbrains-toolbox
   # First launch registers the desktop entry and autostart
@@ -251,8 +264,11 @@ jetbrains_toolbox() {
 }
 
 services() {
-  # Keep the virus definitions the ClamAV daemon scans with up to date
+  # Keep the virus definitions up to date
   sudo systemctl enable --now clamav-freshclam
+  # ClamTk scans on demand with clamscan, so do not keep the ClamAV daemon running: it holds about 1 GB of
+  # signatures in memory. Its socket would start it again on the first connection.
+  sudo systemctl disable --now clamav-daemon.socket clamav-daemon.service
 }
 
 # System files that cannot be symlinked from home/

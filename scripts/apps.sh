@@ -59,8 +59,14 @@ dump() {
   fi
 
   if command -v helm > /dev/null; then
-    helm repo list -o json 2>/dev/null | jq -r '.[] | "\(.name) \(.url)"' > "$HELM_REPOS_FILE" || true
-    echo "Saved the Helm repositories"
+    local repositories
+    # Read first, so a failure cannot empty the saved list (with no repositories, helm prints [])
+    if repositories="$(helm repo list -o json)"; then
+      jq -r '.[] | "\(.name) \(.url)"' <<< "$repositories" > "$HELM_REPOS_FILE"
+      echo "Saved the Helm repositories"
+    else
+      echo "Could not list the Helm repositories; kept the saved list" >&2
+    fi
   fi
 }
 

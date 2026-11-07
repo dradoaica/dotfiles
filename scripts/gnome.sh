@@ -12,7 +12,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 DCONF_DIR="$ROOT_DIR/gnome/dconf"
 EXTENSIONS_FILE="$ROOT_DIR/gnome/extensions.txt"
-USER_EXTENSIONS_DIR="$HOME/.local/share/gnome-shell/extensions"
 
 # File name (without .dconf) -> dconf directory
 declare -A DCONF_PATHS=(
@@ -84,9 +83,14 @@ dump() {
     [ -z "$value" ] || echo "$key=$value" >> "$DCONF_DIR/shell.dconf"
   done
   echo "Saved GNOME settings to $DCONF_DIR"
-  if [ -d "$USER_EXTENSIONS_DIR" ]; then
-    find "$USER_EXTENSIONS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort > "$EXTENSIONS_FILE"
-    echo "Saved the installed extensions to $EXTENSIONS_FILE"
+  # Only the enabled ones: an extension that is installed but turned off is not part of the setup, and
+  # `make doctor` expects every listed extension to be enabled. Read first, so a failure cannot empty the list.
+  local extensions
+  if extensions="$(gnome-extensions list --user --enabled)"; then
+    sort <<< "$extensions" > "$EXTENSIONS_FILE"
+    echo "Saved the enabled extensions to $EXTENSIONS_FILE"
+  else
+    echo "Could not list the GNOME extensions; kept $EXTENSIONS_FILE" >&2
   fi
 }
 
