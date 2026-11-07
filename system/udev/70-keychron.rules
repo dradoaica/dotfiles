@@ -1,0 +1,9 @@
+# Keychron mice and keyboards (vendor 3434): let the user at the seat open their raw HID devices, for Keychron
+# Launcher at https://launcher.keychron.com in Chrome. Must sort before 73-seat-late.rules, which applies the uaccess
+# tag.
+
+# USB: wired mouse or keyboard, 2.4 GHz receiver
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"
+
+# Bluetooth (bus type 0005)
+SUBSYSTEM=="hidraw", KERNELS=="0005:3434:*", TAG+="uaccess"

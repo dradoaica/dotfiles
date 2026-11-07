@@ -98,8 +98,9 @@ Those files are the full, current list; this is an overview.
 - **Apps**: browsers, LibreOffice, media, graphics and screenshot tools, a BitTorrent client, backups (Déjà Dup),
   antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher) and games.
 - **Hardware**: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech devices (it replaces Solaar, which the
-  installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and a udev rule
-  ([`system/udev/`](system/udev)) that lets Rapoo's [web driver](https://hub.rapoo.com) reach Rapoo mice in Chrome.
+  installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and udev rules
+  ([`system/udev/`](system/udev)) that let Rapoo's [web driver](https://hub.rapoo.com) and
+  [Keychron Launcher](https://launcher.keychron.com) reach their devices in Chrome.
 - **Touchpad**: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
   speed from the next login.
 - **Fonts and cursors**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/);
