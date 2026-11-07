@@ -11,12 +11,12 @@ source "$SCRIPT_DIR/lib.sh"
 
 installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'; }
 not_installed() { ! installed "$1"; }
-user_service_enabled() { [ "$(systemctl --user is-enabled "$1" 2>/dev/null)" = enabled ]; }
+user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2>/dev/null)" != enabled ]; }
 service_disabled() { [ "$(systemctl is-enabled "$1" 2>/dev/null)" != enabled ]; }
 service_running() { systemctl is-active --quiet "$1"; }
 docker_context_is_desktop() { [ "$(docker context show 2>/dev/null)" = desktop-linux ]; }
-docker_dashboard_closed_at_start() {
-  jq -e '.OpenUIOnStartupDisabled == true and .AutoStart == true' "$HOME/.docker/desktop/settings-store.json"
+docker_desktop_settings() {
+  jq -e '.OpenUIOnStartupDisabled == true and .AutoStart == false' "$HOME/.docker/desktop/settings-store.json"
 }
 microk8s_not_started_at_boot() {
   local services
@@ -44,8 +44,8 @@ check "every dotfile is linked" bash "$SCRIPT_DIR/link.sh" --check
 
 echo "== Docker"
 check "docker uses Docker Desktop (desktop-linux context)" docker_context_is_desktop
-check "Docker Desktop starts at login" user_service_enabled docker-desktop
-check "Docker Desktop starts minimised, without the Dashboard" docker_dashboard_closed_at_start
+check "Docker Desktop does not start at login" user_service_disabled docker-desktop
+check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
 check "Docker Engine does not start at boot" service_disabled docker.service
 check "containerd does not start at boot" service_disabled containerd.service
 

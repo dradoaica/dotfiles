@@ -38,9 +38,10 @@ aware that it:
 - Adds your user to the `microk8s` group and merges the MicroK8s cluster into `~/.kube/config` (other clusters and
   the current context are kept; the file is made readable only by you), then stops MicroK8s so it does not run in the
   background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
-- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context) and starts it at login,
-  minimised to the tray (the Dashboard does not open). Docker Engine is installed too, but disabled, since Docker
-  Desktop runs its own engine. Start it with `sudo systemctl start docker` if you need it.
+- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context), but does not start it at
+  login. Start it from the app menu or with `systemctl --user start docker-desktop`; it opens in the tray (the
+  Dashboard does not open). Docker Engine is installed too, but disabled, since Docker Desktop runs its own engine.
+  Start it with `sudo systemctl start docker` if you need it.
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date.
 - Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
 - Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
@@ -142,7 +143,6 @@ Configuration lives in [`home/`](home), one folder per program. Each folder mirr
 | `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client         |
 | `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, fzf, completions, history) |
 |             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)               |
-| `docker`    | Docker Desktop service override: waits for GNOME's tray at login, so its icon shows  |
 | `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)         |
 | `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                       |
 | `k9s`       | `~/.config/k9s/` aliases and plugins                                                 |
