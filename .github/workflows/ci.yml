@@ -67,7 +67,7 @@ jobs:
           export HOME="$RUNNER_TEMP/home"
           ln -s "$PWD/home/bash/.removed" "$HOME/.removed"
           if bash scripts/link.sh --check; then exit 1; fi
-          bash scripts/link.sh | grep -q "Removed ~/.removed"
+          bash scripts/link.sh | grep "Removed ~/.removed"
           test ! -L "$HOME/.removed"
           bash scripts/link.sh --check
       - name: Start an interactive shell with the linked files
