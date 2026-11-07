@@ -10,19 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-apt_packages() {
-  sudo apt-get update
-  sudo apt-get upgrade -y --with-new-pkgs
-}
-
-snap_packages() {
-  sudo snap refresh
-}
-
-flatpak_packages() {
-  sudo flatpak update -y
-}
-
 firmware() {
   command -v fwupdmgr > /dev/null || { echo "fwupdmgr is not installed, skipping"; return; }
   sudo fwupdmgr refresh --force
@@ -104,9 +91,9 @@ dotfiles() {
   bash "$SCRIPT_DIR/link.sh" --check
 }
 
-step APT apt_packages
-step Snap snap_packages
-step Flatpak flatpak_packages
+step APT upgrade_apt
+step Snap upgrade_snaps
+step Flatpak upgrade_flatpaks
 step Firmware firmware
 step "Docker Desktop" docker_desktop
 step "GitHub releases" github_debs

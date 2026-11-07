@@ -38,18 +38,28 @@ github_api() {
 }
 
 failed_checks=0
-# check <description> <command...>: run the command quietly and print "ok" or "FAIL" for it.
-# Count failures in failed_checks instead of stopping, so every check runs.
+# check <description> <command...>: run the command quietly and print "ok" or "FAIL" for it, with the command's
+# output indented below a failure so it says why. Count failures in failed_checks instead of stopping, so every
+# check runs.
 check() {
-  local description="$1"
+  local description="$1" output
   shift
-  if "$@" > /dev/null 2>&1; then
+  if output="$("$@" 2>&1)"; then
     echo "ok    $description"
   else
     echo "FAIL  $description"
+    [ -z "$output" ] || echo "        ${output//$'\n'/$'\n'        }"
     failed_checks=$((failed_checks + 1))
   fi
 }
+
+# The upgrades that packages.sh and update.sh both run
+upgrade_apt() {
+  sudo apt-get update
+  sudo apt-get upgrade -y --with-new-pkgs
+}
+upgrade_snaps() { sudo snap refresh; }
+upgrade_flatpaks() { sudo flatpak update -y; }
 
 failed_steps=()
 # step <name> <function>: run a step in a subshell with `set -e` in force (it would be ignored if the step

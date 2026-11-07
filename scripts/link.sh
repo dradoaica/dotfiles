@@ -39,8 +39,26 @@ is_linked() {
   [ -L "$2" ] && [ "$(readlink -f "$2")" = "$(readlink -f "$1")" ]
 }
 
+# Print the symlinks in $HOME that point into home/ at a file that is no longer there, because it was removed from
+# the repository. Stow only knows about the files that are still there, so it never removes these.
+# Skips caches, snaps and the trash, which never hold dotfiles.
+stale_links() {
+  find "$HOME" -xdev \( -path "$HOME/.cache" -o -path "$HOME/snap" -o -path "$HOME/.local/share/Trash" \) -prune \
+    -o -xtype l -lname "*${PACKAGES_DIR#"$HOME"/}/*" -print
+}
+
 backed_up=false
 problems=0
+while read -r link; do
+  [ -n "$link" ] || continue
+  case "$mode" in
+    link) rm "$link"; echo "Removed ~/${link#"$HOME"/}, which points to a file no longer in the repository" ;;
+    check)
+      echo "stale     ~/${link#"$HOME"/} (points to a file no longer in the repository)"
+      problems=$((problems + 1))
+      ;;
+  esac
+done < <(stale_links)
 for package in "${packages[@]}"; do
   [ -d "$PACKAGES_DIR/$package" ] || { echo "Unknown package: $package" >&2; exit 1; }
   case "$mode" in
@@ -84,7 +102,7 @@ if [ "$backed_up" = true ]; then
 fi
 if [ "$mode" = check ]; then
   if [ "$problems" -gt 0 ]; then
-    echo "$problems file(s) not linked; run scripts/link.sh to fix" >&2
+    echo "$problems file(s) not linked or stale; run scripts/link.sh to fix" >&2
     exit 1
   fi
   echo "All files are linked"

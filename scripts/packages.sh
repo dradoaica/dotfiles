@@ -85,10 +85,9 @@ sources() {
 }
 
 upgrade() {
-  sudo apt-get update
-  sudo apt-get upgrade -y --with-new-pkgs
-  sudo snap refresh
-  sudo flatpak update -y
+  upgrade_apt
+  upgrade_snaps
+  upgrade_flatpaks
 }
 
 apt_packages() {

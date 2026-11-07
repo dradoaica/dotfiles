@@ -205,7 +205,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   removed, OpenLogi, default apps, VS Code extensions or Helm repositories, with `make dump`, then review `git diff` and
   commit.
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
-  example after a program overwrote its symlink. `make link` fixes them.
+  example after a program overwrote its symlink, and every link left pointing to a file that was removed from the
+  repository. `make link` fixes them, removing the stale links.
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
   `~/.dotfiles-backup/` if you want them back.
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
@@ -242,9 +243,10 @@ Keep anything private or specific to one machine out of the repository:
   check locally with `make sources`.
 
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
-- **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up and that a
-  second run changes nothing, starts an interactive shell with the linked `.bashrc` and login shells with the linked
-  `.profile`, then unlinks everything again.
+- **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up, that a
+  second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
+  interactive shell with the linked `.bashrc` and login shells with the linked `.profile`, then unlinks everything
+  again.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
   up in a tracked config file is caught before it stays public.
 
