@@ -22,7 +22,8 @@ aware that it:
 - Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while. It runs in steps (sources, packages, Docker,
   Kubernetes and so on); a step that fails does not stop the others, and the failed ones are listed at the end, so you
-  can fix them and run it again.
+  can fix them and run it again. The whole output is also saved in `~/.local/state/dotfiles/` (the 10 newest logs of
+  each script are kept).
 - Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
   GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
   digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
@@ -35,8 +36,13 @@ aware that it:
   the file. It then registers the card's PKCS#11 module in Chrome's certificate database (`~/.pki/nssdb`) and, for
   the Firefox snap, copies the module to `~/snap/firefox/common/pkcs11/` (the only place the snap may load it from),
   adds it with a policy in `/etc/firefox/policies/policies.json` and connects the snap's `pcscd` plug.
-- Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
-  Google Chrome, Docker and GitHub CLI repositories. .NET comes from Ubuntu's own archive.
+- Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis), listed in
+  [`packages/ppas.txt`](packages/ppas.txt), and the Google Chrome, Docker and GitHub CLI repositories, each trusted
+  with its own signing key, listed in [`packages/repositories.txt`](packages/repositories.txt). .NET comes from
+  Ubuntu's own archive.
+- Enables a Git pre-commit hook in this repository ([`.githooks/pre-commit`](.githooks/pre-commit)) that runs
+  [gitleaks](https://github.com/gitleaks/gitleaks) on what you commit, so a secret is stopped before a push publishes
+  it.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
@@ -97,8 +103,9 @@ work through [Post-Install](#post-install).
 
 The installer reads its package lists from [`packages/`](packages), one file per package manager:
 [`apt.txt`](packages/apt.txt), [`snap.txt`](packages/snap.txt), [`flatpak.txt`](packages/flatpak.txt),
-[`brew.txt`](packages/brew.txt) and [`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases.
-Those files are the full, current list; this is an overview.
+[`brew.txt`](packages/brew.txt) and [`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases,
+plus the APT sources they come from in [`ppas.txt`](packages/ppas.txt) and
+[`repositories.txt`](packages/repositories.txt). Those files are the full, current list; this is an overview.
 
 - **Package managers**: APT, Snap, Flatpak (with Flathub) and Homebrew.
 - **Development**: Python, Go, Rust (via rustup), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby and Node.js 24 (via
@@ -196,7 +203,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   (keeping your global npm packages and removing older 24.x releases; other major versions stay). It then removes unused
   packages and old snap revisions, the same cleanup the installer ends with
   ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
-  not stop the others; the failed ones are listed at the end.
+  not stop the others; the failed ones are listed at the end, and the whole output is saved in
+  `~/.local/state/dotfiles/update-<time>.log`.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -217,7 +225,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   `cached_eval <name> <program> <command...>` from `00-cache.sh`: it keeps the output in `~/.cache/bashrc/` and only
   runs the program again when it changes, which keeps new shells fast. `.profile` also loads `brew.sh` and `nvm.sh`,
   so the GNOME session and the apps it starts find Homebrew and Node after the next login (cron and `ssh host command`
-  do not read `.profile`, so they still do not).
+  do not read `.profile`, so they still do not). Both skip what a parent shell already put on `PATH`, so nested shells
+  do not add them again.
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
   removed, OpenLogi, Claude Code, default apps, VS Code extensions or Helm repositories, with `make dump`, then review
   `git diff` and commit.
@@ -229,9 +238,9 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
   Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
-  definitions update and its daemon stays off, `gh` is logged in, Git signs commits, the udev rules are installed and
-  no others were added by hand, the apps from GitHub releases are installed, Chrome and Firefox can use the electronic
-  ID card and every GNOME extension is enabled.
+  definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are
+  checked for secrets, the udev rules are installed and no others were added by hand, the apps from GitHub releases are
+  installed, Chrome and Firefox can use the electronic ID card and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away. The history keeps
@@ -256,10 +265,11 @@ Keep anything private or specific to one machine out of the repository:
 [CI](.github/workflows/ci.yml) runs on every push and every Monday, in an Ubuntu 26.04 container:
 
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
-  GitHub CLI and Chrome repositories, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm, Flathub and
-  Homebrew downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run
-  catches a source that broke while nothing in this repository changed. It also checks that those sources still
-  offer every package in `packages/`, so a renamed or removed package shows up here rather than during an install.
+  GitHub CLI and Chrome repositories and their signing keys, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm,
+  Flathub and Homebrew downloads, and a matching `.deb` with a SHA-256 digest in the latest release of each app in
+  `github-debs.sh`. IDplug Classic is built for Ubuntu 24.04, so its `.deb` is also checked to install on 26.04. The
+  weekly run catches a source that broke while nothing in this repository changed. It also checks that those sources
+  still offer every package in `packages/`, so a renamed or removed package shows up here rather than during an install.
   Run the same check locally with `make sources`.
 
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
@@ -267,8 +277,8 @@ Keep anything private or specific to one machine out of the repository:
   second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
   interactive shell with the linked `.bashrc`, checks that new terminals keep a history longer than Ubuntu's 2,000
   lines, starts login shells with the linked `.profile`, then unlinks everything again.
-- **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
-  up in a tracked config file is caught before it stays public.
+- **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), as a second line
+  behind the pre-commit hook, which checks each commit before it can be pushed.
 
 Each job has a time limit, so a server that stops answering cannot hold up a run. GitHub turns off a public
 repository's schedule after 60 days without activity, so the weekly run also enables the workflow again, which resets

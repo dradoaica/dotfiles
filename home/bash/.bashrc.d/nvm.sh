@@ -8,7 +8,11 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   nvm_default_dir="$(find "$NVM_DIR/versions/node" -mindepth 1 -maxdepth 1 -type d \
     \( -name "v${nvm_default#v}" -o -name "v${nvm_default#v}.*" \) 2>/dev/null | sort -V | tail -1)"
   if [ -n "$nvm_default" ] && [ -n "$nvm_default_dir" ]; then
-    PATH="$nvm_default_dir/bin:$PATH"
+    # Unless a parent shell, or the GNOME session through .profile, already put it there
+    case ":$PATH:" in
+      *":$nvm_default_dir/bin:"*) ;;
+      *) PATH="$nvm_default_dir/bin:$PATH" ;;
+    esac
     nvm() {
       unset -f nvm
       . "$NVM_DIR/nvm.sh"

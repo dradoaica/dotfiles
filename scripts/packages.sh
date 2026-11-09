@@ -9,6 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
+start_log packages
 source /etc/os-release
 # Snaps install their commands here, and this shell started before they existed
 export PATH="$PATH:/snap/bin"
@@ -34,41 +35,39 @@ Signed-By: $keyring
 EOF
 }
 
-# add_keyed_repository <name> <signing key URL> <keyring file> <URI> <suite> <components>: save the repository's
-# signing key and write its sources file
-add_keyed_repository() {
-  local name="$1" key_url="$2" keyring="$3"
-  shift 3
-  sudo curl -fsSL "$key_url" -o "$keyring"
-  sudo chmod a+r "$keyring"
-  write_sources "$name" "$@" "$keyring"
-}
-
-# Google Chrome's repository, written as the same .sources file the Chrome package keeps up to date. Its key is
-# published armored, so dearmor it rather than saving it as it is.
-add_chrome_repository() {
-  curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
-    | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/google-chrome.gpg
-  write_sources google-chrome https://dl.google.com/linux/chrome-stable/deb/ stable main \
-    /usr/share/keyrings/google-chrome.gpg
+# save_signing_key <URL> <keyring file>: download a repository's signing key. apt reads a .asc file as it is
+# published, but a .gpg file must be a binary keyring, so an armored key saved as .gpg is dearmored first.
+save_signing_key() {
+  local key
+  key="$(mktemp)"
+  curl -fsSL "$1" -o "$key"
+  if [[ "$2" == *.gpg ]] && grep -q -- '-----BEGIN PGP PUBLIC KEY BLOCK-----' "$key"; then
+    sudo gpg --batch --yes --dearmor -o "$2" "$key"
+  else
+    sudo install -m 0644 "$key" "$2"
+  fi
+  rm -f "$key"
+  sudo chmod a+r "$2"
 }
 
 sources() {
   # Steam needs 32-bit libraries
   sudo dpkg --add-architecture i386
 
-  sudo add-apt-repository -y ppa:agornostal/ulauncher
-  sudo add-apt-repository -y ppa:openrazer/stable
-  sudo add-apt-repository -y ppa:polychromatic/stable
-  sudo add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
-  sudo add-apt-repository -y ppa:s4solutionsllc/nexis
+  local ppas ppa repositories repository name key_url keyring uri suite components
+  mapfile -t ppas < <(read_list ppas.txt)
+  for ppa in "${ppas[@]}"; do
+    sudo add-apt-repository -y "$ppa"
+  done
 
+  # The repositories with their own signing key, with {codename} replaced by this release's code name
   sudo install -m 0755 -d /usr/share/keyrings /etc/apt/keyrings
-  add_keyed_repository docker https://download.docker.com/linux/ubuntu/gpg /etc/apt/keyrings/docker.asc \
-    https://download.docker.com/linux/ubuntu "$VERSION_CODENAME" stable
-  add_keyed_repository github-cli https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-    /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages stable main
-  add_chrome_repository
+  mapfile -t repositories < <(read_list repositories.txt)
+  for repository in "${repositories[@]}"; do
+    read -r name key_url keyring uri suite components <<< "${repository//"{codename}"/$VERSION_CODENAME}"
+    save_signing_key "$key_url" "$keyring"
+    write_sources "$name" "$uri" "$suite" "$components" "$keyring"
+  done
 
   sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 

@@ -59,11 +59,9 @@ jetbrains_toolbox_has_download() {
 }
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
-# The same list packages.sh adds (not the ones it removes), so the two never drift apart
-mapfile -t ppas < <(grep -oE '^[[:space:]]*sudo add-apt-repository -y ppa:[^ ]+' "$SCRIPT_DIR/packages.sh" \
-  | sed 's/.*ppa://')
-# Finding none means the search above no longer matches packages.sh, not that there is nothing to check
-check "found the PPAs in packages.sh (${#ppas[@]})" test "${#ppas[@]}" -gt 0
+# The lists packages.sh adds the sources from
+mapfile -t ppas < <(read_list ppas.txt | sed 's/^ppa://')
+mapfile -t repositories < <(read_list repositories.txt | sed "s/{codename}/$VERSION_CODENAME/g")
 for ppa in "${ppas[@]}"; do
   owner="${ppa%%/*}"
   name="${ppa#*/}"
@@ -71,14 +69,16 @@ for ppa in "${ppas[@]}"; do
 done
 
 echo "== APT repositories"
-check "Docker ($VERSION_CODENAME)" url_exists "https://download.docker.com/linux/ubuntu/dists/$VERSION_CODENAME/Release"
-check "GitHub CLI" url_exists https://cli.github.com/packages/dists/stable/Release
-check "Google Chrome" url_exists https://dl.google.com/linux/chrome-stable/deb/dists/stable/Release
+for repository in "${repositories[@]}"; do
+  read -r name key_url _ uri suite _ <<< "$repository"
+  check "$name ($suite)" url_exists "${uri%/}/dists/$suite/Release"
+  check "$name signing key" url_exists "$key_url"
+done
 
 echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
 check "JetBrains Toolbox download link and checksum" jetbrains_toolbox_has_download
-check "IDplug Classic download still matches its pinned checksum" bash "$SCRIPT_DIR/idplug.sh" --check
+check "IDplug Classic download matches its pinned checksum and installs on this release" bash "$SCRIPT_DIR/idplug.sh" --check
 nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // empty')"
 check "nvm installer (latest release: ${nvm_tag:-not found})" \
   url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"
@@ -107,9 +107,12 @@ for ppa in "${ppas[@]}"; do
   name="${ppa#*/}"
   check "ppa:$ppa" add_apt_index "https://ppa.launchpadcontent.net/$owner/$name/ubuntu/dists/$VERSION_CODENAME/main"
 done
-check "Docker" add_apt_index "https://download.docker.com/linux/ubuntu/dists/$VERSION_CODENAME/stable"
-check "GitHub CLI" add_apt_index https://cli.github.com/packages/dists/stable/main
-check "Google Chrome" add_apt_index https://dl.google.com/linux/chrome-stable/deb/dists/stable/main
+for repository in "${repositories[@]}"; do
+  read -r name _ _ uri suite components <<< "$repository"
+  for component in $components; do
+    check "$name $component" add_apt_index "${uri%/}/dists/$suite/$component"
+  done
+done
 
 echo "== APT packages"
 mapfile -t apt_packages < <(read_list apt.txt)

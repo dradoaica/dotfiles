@@ -1,0 +1,8 @@
+# APT repositories with their own signing key, added by scripts/packages.sh and checked by scripts/check-sources.sh.
+# <name> <signing key URL> <keyring file> <URI> <suite> <components...>, where {codename} stands for the code name
+# of the Ubuntu release. A keyring file ending in .gpg must be a binary keyring, so an armored key is dearmored for it.
+
+docker https://download.docker.com/linux/ubuntu/gpg /etc/apt/keyrings/docker.asc https://download.docker.com/linux/ubuntu {codename} stable
+github-cli https://cli.github.com/packages/githubcli-archive-keyring.gpg /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages stable main
+# Written as the same .sources file and keyring the Chrome package keeps up to date
+google-chrome https://dl.google.com/linux/linux_signing_key.pub /usr/share/keyrings/google-chrome.gpg https://dl.google.com/linux/chrome-stable/deb/ stable main

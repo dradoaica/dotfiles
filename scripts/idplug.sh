@@ -5,7 +5,8 @@
 # update feed, so the download is pinned to the file it served for this version: when MAI replaces it, the checksum
 # fails and the pin needs updating.
 # Usage: idplug.sh [--check]
-#   --check  only confirm that the download still serves the pinned file, without installing anything
+#   --check  only confirm that the download still serves the pinned file and that this Ubuntu release has every
+#            package it depends on, without installing anything
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -38,7 +39,14 @@ download() {
 
 if [ "$check_only" = true ]; then
   download
-  echo "IDplug Classic $(dpkg-deb -f "$deb" Version) (sha256:$SHA256)"
+  # The package is built for Ubuntu 24.04, so also check that this release still offers everything it depends on.
+  # The simulation lists every package it would install; show its output only when it fails, without that list.
+  if ! simulation="$(apt-get install --simulate "$deb" 2>&1)"; then
+    grep -vE '^(Inst|Conf) |^NOTE: This is only a simulation|^ +(apt-get needs root|Keep also in mind|so don.t)' \
+      <<< "$simulation" >&2
+    exit 1
+  fi
+  echo "IDplug Classic $(dpkg-deb -f "$deb" Version) (sha256:$SHA256) installs on this release"
   exit 0
 fi
 

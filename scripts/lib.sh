@@ -78,11 +78,32 @@ step() {
   fi
 }
 
+# start_log <name>: also write everything the script prints to ~/.local/state/dotfiles/<name>-<time>.log, so the
+# errors of a long run can still be read after they scroll away. A script started by one that already logs, like
+# packages.sh by install.sh, writes to the same log. Keeps the 10 newest logs of each name.
+log_started=false
+start_log() {
+  [ -z "${DOTFILES_LOG:-}" ] || return 0
+  local dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+  install -d -m 0700 "$dir"
+  find "$dir" -maxdepth 1 -name "$1-*.log" -printf '%f\n' | sort -r | tail -n +10 | sed "s|^|$dir/|" \
+    | xargs -r rm -f --
+  DOTFILES_LOG="$dir/$1-$(date +%Y%m%d-%H%M%S).log"
+  export DOTFILES_LOG
+  exec > >(tee -a "$DOTFILES_LOG") 2>&1
+  log_pid=$!
+  log_started=true
+  # Wait for tee to write the last lines, so the log is complete and the prompt does not come back before them
+  trap 'exec >&- 2>&-; wait "$log_pid"' EXIT
+}
+
 # finish <message>: print the message, or list the failed steps and exit with an error
 finish() {
   if [ "${#failed_steps[@]}" -gt 0 ]; then
     echo "Done, but these steps failed: ${failed_steps[*]}. Scroll up for their errors." >&2
+    [ "$log_started" = false ] || echo "The whole output is saved in $DOTFILES_LOG" >&2
     exit 1
   fi
   echo "$1"
+  [ "$log_started" = false ] || echo "The whole output is saved in $DOTFILES_LOG"
 }

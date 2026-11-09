@@ -7,9 +7,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
+start_log install
 
 step Packages bash "$SCRIPT_DIR/packages.sh"
 step Dotfiles bash "$SCRIPT_DIR/link.sh"
+# Check commits to this repository for secrets before they can be pushed (.githooks/pre-commit)
+step "Git hooks" git -C "$ROOT_DIR" config core.hooksPath .githooks
 step "GNOME extensions" bash "$SCRIPT_DIR/gnome.sh" extensions
 step "GNOME settings" bash "$SCRIPT_DIR/gnome.sh" load
 step "App settings" bash "$SCRIPT_DIR/apps.sh" load

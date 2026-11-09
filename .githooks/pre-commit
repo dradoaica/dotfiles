@@ -1,0 +1,19 @@
+#!/bin/bash
+# Stop a commit that adds a secret before it leaves this machine. The repository is public, and the gitleaks scan in
+# CI only runs after a push has already published the commit. install.sh enables this hook with
+# `git config core.hooksPath .githooks`; skip it for one commit with `git commit --no-verify`.
+
+set -euo pipefail
+
+# Commits made from an IDE may not have Homebrew on PATH. Git runs hooks from the top of the working tree.
+if ! command -v gitleaks > /dev/null; then
+  # shellcheck source=scripts/lib.sh
+  source scripts/lib.sh
+  load_homebrew || true
+fi
+if ! command -v gitleaks > /dev/null; then
+  echo "gitleaks is not installed, so this commit cannot be checked for secrets. Install it with" \
+    "\`brew install gitleaks\`, or skip the check with \`git commit --no-verify\`." >&2
+  exit 1
+fi
+exec gitleaks git --pre-commit --staged --redact --no-banner --verbose

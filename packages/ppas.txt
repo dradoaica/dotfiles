@@ -1,0 +1,7 @@
+# PPAs, added by scripts/packages.sh and checked by scripts/check-sources.sh. One PPA per line.
+
+ppa:agornostal/ulauncher
+ppa:openrazer/stable
+ppa:polychromatic/stable
+ppa:qbittorrent-team/qbittorrent-stable
+ppa:s4solutionsllc/nexis

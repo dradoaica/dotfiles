@@ -9,6 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
+start_log update
 
 firmware() {
   command -v fwupdmgr > /dev/null || { echo "fwupdmgr is not installed, skipping"; return; }

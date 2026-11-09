@@ -35,6 +35,12 @@ microk8s_not_started_at_boot() {
   services="$(snap services microk8s)" || return 1
   ! awk 'NR > 1 { print $2 }' <<< "$services" | grep -qx enabled
 }
+secrets_hook_enabled() {
+  [ "$(git -C "$ROOT_DIR" config --get core.hooksPath)" = .githooks ] \
+    || { echo "enable it with: git -C $ROOT_DIR config core.hooksPath .githooks" >&2; return 1; }
+  load_homebrew || true
+  command -v gitleaks > /dev/null || { echo "gitleaks is not installed: brew install gitleaks" >&2; return 1; }
+}
 commits_signed() {
   if [ "$(git config --global --includes --get commit.gpgsign)" != true ] \
     || [ ! -f "$(git config --global --includes --get user.signingkey)" ]; then
@@ -110,6 +116,7 @@ check "ClamAV virus definitions are kept up to date (clamav-freshclam)" service_
 check "the ClamAV daemon does not run in the background" clamav_daemon_disabled
 check "GitHub CLI is logged in" gh auth status
 check "Git signs commits and tags with an SSH key" commits_signed
+check "commits to this repository are checked for secrets first (gitleaks pre-commit hook)" secrets_hook_enabled
 
 echo "== Hardware"
 check "the udev rules in system/udev/ are installed" udev_rules_installed
