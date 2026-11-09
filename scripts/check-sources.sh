@@ -12,10 +12,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 source /etc/os-release
 
-# Fetch only the first byte, so large files are not downloaded
-url_exists() { curl -fsSL --retry 2 --range 0-0 -o /dev/null "$1"; }
+# curl retries a rate limit (HTTP 429) and server errors, waiting longer each time (1, 2, 4... seconds, or as long as
+# the server asks), which the Snap Store needs when many checks run in a row. A server that stops answering fails the
+# check instead of holding up the others.
+CURL_RETRY=(--retry 5 --retry-max-time 120 --max-time 60)
 
-url_found() { curl -fsSL --retry 2 -o /dev/null "$@"; }
+# Fetch only the first byte, so large files are not downloaded
+url_exists() { curl -fsSL "${CURL_RETRY[@]}" --range 0-0 -o /dev/null "$1"; }
+
+url_found() { curl -fsSL "${CURL_RETRY[@]}" -o /dev/null "$@"; }
 
 apt_index="$(mktemp)"
 trap 'rm -f "$apt_index"' EXIT

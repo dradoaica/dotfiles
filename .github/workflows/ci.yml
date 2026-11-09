@@ -19,11 +19,14 @@ defaults:
   run:
     shell: bash
 
-# Lint, link and sources run in a container of the release this repository targets, not on the runner's own Ubuntu
+# Lint, link and sources run in a container of the release this repository targets, not on the runner's own Ubuntu.
+# Each job has a time limit, so a server that stops answering cannot hold a runner for GitHub's default of 6 hours.
 jobs:
   sources:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
+    # The checks retry rate-limited requests for up to 2 minutes each
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install curl and jq
@@ -36,6 +39,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install make and shellcheck
@@ -47,6 +51,7 @@ jobs:
   link:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Stow
@@ -74,6 +79,18 @@ jobs:
         run: |
           export HOME="$RUNNER_TEMP/home"
           bash -ic 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
+      - name: Keep a long history when new terminals start
+        run: |
+          export HOME="$RUNNER_TEMP/home"
+          # Fill the file the shell keeps its history in with more than the 2000 lines Ubuntu's .bashrc trims
+          # ~/.bash_history to, then check that new terminals still load all of it
+          histfile="$(bash -i <<< 'echo "$HISTFILE"' 2> /dev/null | tail -1)"
+          seq 1 5000 | sed 's/^/echo /' > "$histfile"
+          for shell in first second; do
+            entries="$(bash -i <<< 'history | wc -l' 2> /dev/null | tail -1)"
+            echo "The $shell shell loaded $entries history entries from ${histfile#"$HOME"/}"
+            [ "$entries" -ge 5000 ]
+          done
       - name: Start login shells with the linked files, as the GNOME session does
         run: |
           export HOME="$RUNNER_TEMP/home"
@@ -88,6 +105,7 @@ jobs:
 
   secrets:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # gitleaks comments on pull requests that add a secret
     permissions:
       contents: read
@@ -101,3 +119,17 @@ jobs:
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # GitHub turns off a public repository's schedule after 60 days without activity, which is when the weekly check
+  # matters most. Enabling the workflow from its own scheduled run resets that timer.
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Keep the weekly schedule enabled
+        run: gh api --method PUT "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -10,6 +10,8 @@ apt:ubuntu-.*
 
 # Pulled in or set up by the installer itself
 apt:docker-desktop
+# The Craft apps, which ArtCraft Launcher installs and updates itself
+apt:(deckcraft|gridcraft|pdfcraft|photocraft|wordcraft)
 
 # Bases, runtimes and themes that snaps and Flatpak apps install for themselves, and the snaps Ubuntu ships
 snap:(bare|snapd|core[0-9]*)

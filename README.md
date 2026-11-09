@@ -11,7 +11,6 @@ development workstation.
 - [Dotfiles](#dotfiles)
 - [Post-Install](#post-install)
 - [Troubleshooting](#troubleshooting)
-- [Optional Apps](#optional-apps)
 - [Further Reading](#further-reading)
 - [License](#license)
 
@@ -24,11 +23,12 @@ aware that it:
 - Needs `sudo`, runs a full `apt-get upgrade`, and takes a while. It runs in steps (sources, packages, Docker,
   Kubernetes and so on); a step that fails does not stop the others, and the failed ones are listed at the end, so you
   can fix them and run it again.
-- Installs balenaEtcher, OpenLogi and Wayland Scroll Factor from the `.deb` files on their latest GitHub releases
-  ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256 digest GitHub
-  publishes for it. Installs Docker Desktop the same way from Docker's update feed
-  ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
-  for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes next to each download.
+- Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
+  GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
+  digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
+  Docker's update feed ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the
+  `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
+  next to each download.
 - Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
   [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/idplug.sh`](scripts/idplug.sh)). MAI
   publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
@@ -51,8 +51,10 @@ aware that it:
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date, and disables the ClamAV daemon, which
   keeps about 1 GB of signatures in memory. ClamTk scans on demand without it.
 - Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
-- Creates a GPG key named "Docker Desktop" **without a passphrase** and initialises `pass` with it, so Docker Desktop
-  can store credentials. Replace it with a passphrase-protected key if that matters to you.
+- Creates a GPG key named "Docker Desktop" and initialises `pass` with it, so Docker Desktop can store registry
+  credentials. GnuPG asks for the key's passphrase in a dialog; when Docker Desktop first needs it, the dialog can save
+  it in your login keyring, which unlocks it from then on when you log in. Machines set up before this made the key
+  without a passphrase: add one with `gpg --passwd 'Docker Desktop'` (`make doctor` reports it).
 
 The script is safe to re-run.
 
@@ -78,13 +80,13 @@ Keep the clone where it is afterwards: the symlinks point into it.
 The installer runs these steps, which you can also run on their own. The `make` shortcuts work once `packages.sh` has
 installed `make`; run `make` on its own to list them.
 
-| Step                          | Shortcut          | What it does                                                     |
-|-------------------------------|-------------------|------------------------------------------------------------------|
-| `scripts/packages.sh`         | `make packages`   | Adds the repositories and installs everything listed below.      |
-| `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.       |
-| `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.  |
-| `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.              |
-| `scripts/apps.sh load`        | `make load`       | Applies OpenLogi, default apps, VS Code and Helm settings.       |
+| Step                          | Shortcut          | What it does                                                            |
+|-------------------------------|-------------------|-------------------------------------------------------------------------|
+| `scripts/packages.sh`         | `make packages`   | Adds the repositories and installs everything listed below.             |
+| `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.              |
+| `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.         |
+| `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.                     |
+| `scripts/apps.sh load`        | `make load`       | Applies OpenLogi, Claude Code, default apps, VS Code and Helm settings. |
 
 When it finishes, **log out and back in** so the new group membership, fonts and GNOME extensions take effect, then
 work through [Post-Install](#post-install).
@@ -104,7 +106,9 @@ Those files are the full, current list; this is an overview.
 - **Containers and Kubernetes**: Docker Desktop (Docker Engine is installed too, but stays off), MicroK8s (stopped
   until you start it), Multipass, kubectl, Helm and K9s.
 - **Apps**: browsers, LibreOffice, media, graphics and screenshot tools, a BitTorrent client, backups (Déjà Dup),
-  antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher) and games.
+  antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher),
+  [ArtCraft Launcher](https://github.com/storytold/craft-launcher) (which installs and updates the Craft image, video,
+  vector, document and CAD editors) and games.
 - **Hardware**: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech devices (it replaces Solaar, which the
   installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and udev rules
   ([`system/udev/`](system/udev)) that let Rapoo's [web driver](https://hub.rapoo.com) and
@@ -141,7 +145,8 @@ active after you log out and back in:
 
 ### Not Automated
 
-Proprietary drivers ([Post-Install](#post-install)) and the [Optional Apps](#optional-apps).
+Proprietary drivers ([Post-Install](#post-install)) and commit signing ([Commit Signing](#commit-signing)), which
+need you to answer prompts.
 
 ## Dotfiles
 
@@ -176,6 +181,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 
 - **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
   backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
+- **Claude Code**: `~/.claude/settings.json` (model, theme, plugins, auto mode), copied in and out the same way, since
+  Claude Code rewrites the file. The loaded settings apply to new Claude Code sessions.
 - **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
   are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
 - **VS Code extensions**: the list from `code --list-extensions`; loading installs the ones that are missing.
@@ -184,11 +191,12 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 ### Day to Day
 
 - **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
-  so reboot yourself if it asks), Docker Desktop, balenaEtcher, OpenLogi and Wayland Scroll Factor, Homebrew, pipx
-  tools, your GNOME extensions, the Rust toolchain, nvm and Node 24 (keeping your global npm packages and removing older
-  24.x releases; other major versions stay). It then removes unused packages and old snap revisions, the same cleanup
-  the installer ends with ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer
-  linked. A step that fails does not stop the others; the failed ones are listed at the end.
+  so reboot yourself if it asks), Docker Desktop, the apps from GitHub releases, IDplug Classic (when MAI's version
+  pinned in `idplug.sh` changes), Homebrew, pipx tools, your GNOME extensions, the Rust toolchain, nvm and Node 24
+  (keeping your global npm packages and removing older 24.x releases; other major versions stay). It then removes unused
+  packages and old snap revisions, the same cleanup the installer ends with
+  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
+  not stop the others; the failed ones are listed at the end.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
 - **Add a file** by moving it into the matching package, then re-link it:
 
@@ -211,8 +219,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   so the GNOME session and the apps it starts find Homebrew and Node after the next login (cron and `ssh host command`
   do not read `.profile`, so they still do not).
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
-  removed, OpenLogi, default apps, VS Code extensions or Helm repositories, with `make dump`, then review `git diff` and
-  commit.
+  removed, OpenLogi, Claude Code, default apps, VS Code extensions or Helm repositories, with `make dump`, then review
+  `git diff` and commit.
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
   example after a program overwrote its symlink, and every link left pointing to a file that was removed from the
   repository. `make link` fixes them, removing the stale links.
@@ -220,12 +228,15 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   `~/.dotfiles-backup/` if you want them back.
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
-  MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update and its daemon stays off,
-  `gh` is logged in, the udev rules are installed and no others were added by hand, the apps from GitHub releases are
-  installed, Chrome and Firefox can use the electronic ID card and every GNOME extension is enabled.
+  Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
+  definitions update and its daemon stays off, `gh` is logged in, Git signs commits, the udev rules are installed and
+  no others were added by hand, the apps from GitHub releases are installed, Chrome and Firefox can use the electronic
+  ID card and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
-  command is written to the history as soon as it runs, so new terminals can find it straight away.
+  command is written to the history as soon as it runs, so new terminals can find it straight away. The history keeps
+  up to 100,000 commands in `~/.local/state/bash/history`, not in `~/.bash_history`, which Ubuntu's `.bashrc` (kept
+  as Ubuntu ships it) trims to 2,000 lines whenever a terminal opens.
 
 `link.sh` links individual files rather than whole folders, so programs that write extra files into `~/.config` never
 write them into the repository.
@@ -236,9 +247,9 @@ Keep anything private or specific to one machine out of the repository:
 
 - **Shell**: put it in an extra file in `~/.bashrc.d/`, for example `~/.bashrc.d/local.sh`. Every `*.sh` file there is
   loaded, but only the ones in `home/bash/.bashrc.d/` are tracked.
-- **Git**: put it in `~/.config/git/config.local` (signing key, work email). The Git config includes it, and it is not
-  tracked. `git config --global` writes through the symlink into the repository, so use
-  `git config --file ~/.config/git/config.local` instead.
+- **Git**: put it in `~/.config/git/config.local` (work email; `make signing` writes its settings there too). The Git
+  config includes it, and it is not tracked. `git config --global` writes through the symlink into the repository, so
+  use `git config --file ~/.config/git/config.local` instead.
 
 ### Testing
 
@@ -254,10 +265,14 @@ Keep anything private or specific to one machine out of the repository:
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up, that a
   second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
-  interactive shell with the linked `.bashrc` and login shells with the linked `.profile`, then unlinks everything
-  again.
+  interactive shell with the linked `.bashrc`, checks that new terminals keep a history longer than Ubuntu's 2,000
+  lines, starts login shells with the linked `.profile`, then unlinks everything again.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), so a token that ends
   up in a tracked config file is caught before it stays public.
+
+Each job has a time limit, so a server that stops answering cannot hold up a run. GitHub turns off a public
+repository's schedule after 60 days without activity, so the weekly run also enables the workflow again, which resets
+that timer.
 
 [`.editorconfig`](.editorconfig) keeps editors in line with the repository's style (LF, 2-space indents, 120 columns
 for Markdown, no re-wrapping of Markdown paragraphs in JetBrains IDEs).
@@ -275,6 +290,20 @@ works without a separate token, and you do not need `gh auth setup-git`:
 ```bash
 gh auth login
 ```
+
+### Commit Signing
+
+Sign your commits and tags with an SSH key, so GitHub shows them as Verified. Run this once on each machine, after
+signing in to the GitHub CLI:
+
+```bash
+make signing
+```
+
+It creates `~/.ssh/id_ed25519` if you do not have one (it asks for a passphrase), asks you in the browser to let the
+GitHub CLI manage signing keys, adds the key to your GitHub account as a signing key, and writes the Git settings to
+`~/.config/git/config.local`. Git signs through GNOME's SSH agent, which asks for the key's passphrase in a dialog the
+first time after you log in, so commits from IDEs are signed too. Running it again skips what is already done.
 
 ### Ulauncher Hotkey on Wayland
 
@@ -384,23 +413,6 @@ Try these in order. For the first two, edit `/etc/default/grub` (e.g. `sudo nano
    EOF
    sudo systemctl enable --now fix-screen-brightness.service
    ```
-
-## Optional Apps
-
-These are distributed as `.deb` files on GitHub releases and are not installed by the script. The commands below
-use the [GitHub CLI](https://cli.github.com/) (`gh`), which the script installs, to download the latest release. `gh`
-needs you to [sign in](#github-cli) once first. You can also download the file from the linked releases page. These
-packages come from third parties: check the project and any published checksums before installing.
-
-### ArtCraft Launcher
-
-Installer and updater for the Craft app suite (image, video, vector, document and CAD editors).
-[Releases](https://github.com/storytold/craft-launcher/releases/latest).
-
-```bash
-gh release download -R storytold/craft-launcher --pattern '*-linux-x86_64.deb' -D /tmp/craft
-sudo apt-get install -y /tmp/craft/*.deb
-```
 
 ## Further Reading
 

@@ -4,3 +4,4 @@
 AprilNEA/OpenLogi openlogi ^openlogi-v.*-linux-amd64\.deb$
 balena-io/etcher balena-etcher ^balena-etcher_.*_amd64\.deb$
 daniel-g-carrasco/wayland-scroll-factor wayland-scroll-factor ^wayland-scroll-factor_.*_amd64\.deb$
+storytold/craft-launcher artcraft-launcher ^artcraft-launcher-.*-linux-x86_64\.deb$

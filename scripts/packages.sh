@@ -182,7 +182,9 @@ docker_credentials() {
   local key_id
   key_id="$(gpg_key_id "Docker Desktop")"
   if [ -z "$key_id" ]; then
-    gpg --batch --passphrase "" --quick-gen-key "Docker Desktop" default default
+    # GnuPG asks for the key's passphrase in a dialog. When Docker Desktop first needs it, the dialog can save it in
+    # the login keyring, which unlocks it from then on when you log in.
+    gpg --batch --quick-gen-key "Docker Desktop" default default
     key_id="$(gpg_key_id "Docker Desktop")"
   fi
   pass init "$key_id"
@@ -282,7 +284,7 @@ github_releases() {
   if dpkg -s solaar > /dev/null 2>&1; then
     sudo apt-get purge -y solaar
   fi
-  # balenaEtcher, OpenLogi and Wayland Scroll Factor (packages/github-debs.txt)
+  # The apps in packages/github-debs.txt
   bash "$SCRIPT_DIR/github-debs.sh"
   # Slow down touchpad scrolling on Wayland; takes effect after the next login
   wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30 --pinch-zoom 1.00 --pinch-rotate 1.00

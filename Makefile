@@ -4,7 +4,7 @@ SHELL := /bin/bash
 SCRIPTS := scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile
 
 .DEFAULT_GOAL := help
-.PHONY: help install update packages link unlink check doctor extensions load dump lint sources drift
+.PHONY: help install update packages link unlink check doctor extensions load dump lint sources drift signing
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-11s %s\n", $$1, $$2}'
@@ -12,7 +12,7 @@ help: ## List the available targets
 install: ## Set up everything: packages, links, GNOME extensions and settings
 	bash scripts/install.sh
 
-update: ## Update packages, firmware, Docker Desktop, GitHub-release apps, Homebrew, pipx, extensions, Rust, Node
+update: ## Update packages, firmware, Docker Desktop, GitHub-release apps, IDplug, Homebrew, pipx, extensions, Rust, Node
 	bash scripts/update.sh
 
 packages: ## Add the repositories and install the packages
@@ -47,6 +47,9 @@ drift: ## Report what is installed but not listed in packages/
 
 sources: ## Check that the PPAs, repositories and downloads the installer uses still work
 	bash scripts/check-sources.sh
+
+signing: ## Sign Git commits and tags with an SSH key (creates it and adds it to GitHub)
+	bash scripts/git-signing.sh
 
 lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)

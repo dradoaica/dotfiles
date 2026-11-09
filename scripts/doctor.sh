@@ -15,6 +15,18 @@ user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2>/dev/null)" !=
 service_disabled() { [ "$(systemctl is-enabled "$1" 2>/dev/null)" != enabled ]; }
 service_running() { systemctl is-active --quiet "$1"; }
 docker_context_is_desktop() { [ "$(docker context show 2>/dev/null)" = desktop-linux ]; }
+# The agent marks each secret key P when a passphrase protects it, and C when it does not
+docker_key_has_passphrase() {
+  local keygrips keygrip
+  keygrips="$(gpg --list-secret-keys --with-colons --with-keygrip "Docker Desktop" 2> /dev/null \
+    | awk -F: '$1 == "grp" { print $10 }')"
+  [ -n "$keygrips" ] || { echo "there is no secret key named Docker Desktop" >&2; return 1; }
+  for keygrip in $keygrips; do
+    gpg-connect-agent "keyinfo $keygrip" /bye \
+      | awk '$2 == "KEYINFO" { found = 1; protected = ($8 == "P") } END { exit !(found && protected) }' \
+      || { echo "add a passphrase with: gpg --passwd 'Docker Desktop'" >&2; return 1; }
+  done
+}
 docker_desktop_settings() {
   jq -e '.OpenUIOnStartupDisabled == true and .AutoStart == false' "$HOME/.docker/desktop/settings-store.json"
 }
@@ -23,8 +35,20 @@ microk8s_not_started_at_boot() {
   services="$(snap services microk8s)" || return 1
   ! awk 'NR > 1 { print $2 }' <<< "$services" | grep -qx enabled
 }
+commits_signed() {
+  if [ "$(git config --global --includes --get commit.gpgsign)" != true ] \
+    || [ ! -f "$(git config --global --includes --get user.signingkey)" ]; then
+    echo "set it up with: make signing" >&2
+    return 1
+  fi
+}
 kubeconfig_private() { [ ! -e "$HOME/.kube/config" ] || [ "$(stat -c '%a' "$HOME/.kube/config")" = 600 ]; }
-chrome_has_idplug() { modutil -dbdir "sql:$HOME/.pki/nssdb" -list "IDEMIA IDPlug"; }
+# Reads the registration without loading the module, so it does not depend on the card being in the reader
+chrome_has_idplug() {
+  local modules
+  modules="$(modutil -dbdir "sql:$HOME/.pki/nssdb" -rawlist)" || return 1
+  grep -qF 'library="/usr/lib/idplugclassic/libidplug-pkcs11.so" name="IDEMIA IDPlug"' <<< "$modules"
+}
 firefox_has_idplug() {
   local library="$HOME/snap/firefox/common/pkcs11/libidplug-pkcs11.so"
   ! snap list firefox > /dev/null 2>&1 && return
@@ -74,6 +98,7 @@ check "Docker Desktop does not start at login" user_service_disabled docker-desk
 check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
 check "Docker Engine does not start at boot" service_disabled docker.service
 check "containerd does not start at boot" service_disabled containerd.service
+check "the GPG key Docker Desktop stores credentials with has a passphrase" docker_key_has_passphrase
 
 echo "== Kubernetes"
 check "MicroK8s does not start at boot" microk8s_not_started_at_boot
@@ -84,16 +109,18 @@ echo "== Security"
 check "ClamAV virus definitions are kept up to date (clamav-freshclam)" service_running clamav-freshclam
 check "the ClamAV daemon does not run in the background" clamav_daemon_disabled
 check "GitHub CLI is logged in" gh auth status
+check "Git signs commits and tags with an SSH key" commits_signed
 
 echo "== Hardware"
 check "the udev rules in system/udev/ are installed" udev_rules_installed
 check "every udev rule in /etc/udev/rules.d/ comes from system/udev/, a package or snapd" no_unmanaged_udev_rules
 
 echo "== Apps"
-check "OpenLogi is installed" installed openlogi
+while read -r repo package _; do
+  check "$package from $repo is installed" installed "$package"
+done < <(read_list github-debs.txt)
 check "Solaar is not installed" not_installed solaar
-check "balenaEtcher is installed" installed balena-etcher
-check "Wayland Scroll Factor is installed and enabled" wsf_enabled
+check "Wayland Scroll Factor is enabled" wsf_enabled
 check "IDplug Classic is installed" installed idplugclassic
 check "Chrome can use the electronic ID card (IDEMIA IDPlug module)" chrome_has_idplug
 check "Firefox can use the electronic ID card (module, policy and pcscd connection)" firefox_has_idplug

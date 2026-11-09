@@ -1,0 +1,48 @@
+{
+  "model": "opus",
+  "enabledPlugins": {
+    "gitkraken-hooks@gitkraken": true
+  },
+  "extraKnownMarketplaces": {
+    "gitkraken": {
+      "source": {
+        "source": "directory",
+        "path": "/home/dradoaica/.claude/plugins/marketplaces/gitkraken"
+      }
+    }
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
+  "theme": "dark",
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: Not queryable via gh (origin remote host/shape not derivable or unsupported). Remote is https://github.com/dradoaica/dotfiles.git — assume private per shipped-default heuristic; this is a personal dotfiles repo with no visibility confirmation",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured (CI secret name GITHUB_TOKEN referenced in workflow config, value not known)",
+      "**Default / protected branches**: Not queryable via gh (org/repo not derivable); unknown — origin/HEAD unset in repo facts",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine (this is the user's personal Ubuntu desktop workstation per README) with open internet",
+      "**Source control**: The trusted repo (https://github.com/dradoaica/dotfiles.git) and its remote only — no additional orgs configured",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar. Note: apps/helm-repositories.txt flagged by filename scan as sensitive-looking — treat as a candidate secrets/config file pending review",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries prod or production as a whole word or name segment",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries prod or production as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: personal dotfiles / workstation provisioning and configuration (Ubuntu desktop setup scripts, GNOME config, package management)",
+      "**Trusted repo**: /home/dradoaica/Projects/dotfiles and its remote https://github.com/dradoaica/dotfiles.git — routine edits, commits, and pushes here are expected",
+      "**Org-specific CLIs**: None configured — microk8s, docker, apt/dpkg/snap/flatpak, gsettings/dconf, and GitHub CLI (gh) are used routinely per shell history and transcripts but are standard package/system tooling, not org-specific"
+    ]
+  }
+}

@@ -1,7 +1,8 @@
 #!/bin/bash
 # Save or restore app settings that cannot be symlinked: the apps rewrite the files, or the
 # files hold machine-specific names. They are kept in apps/.
-# Usage: apps.sh dump   save the OpenLogi config, default apps, VS Code extensions and Helm repositories
+# Usage: apps.sh dump   save the OpenLogi config, Claude Code settings, default apps, VS Code extensions and Helm
+#                       repositories
 #        apps.sh load   apply them to this machine
 
 set -euo pipefail
@@ -13,6 +14,7 @@ APPS_DIR="$ROOT_DIR/apps"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
 OPENLOGI_CONFIG="$HOME/.config/openlogi/config.toml"
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 MIMEAPPS="$HOME/.config/mimeapps.list"
 DEFAULT_APPS_FILE="$APPS_DIR/default-apps.txt"
 VSCODE_EXTENSIONS_FILE="$APPS_DIR/vscode-extensions.txt"
@@ -33,14 +35,34 @@ load_homebrew || true
 # Snaps install their commands here (VS Code is one), and on a fresh install this shell started before they existed
 export PATH="$PATH:/snap/bin"
 
+# save_file <file> <saved copy> <description>: copy an app's file into the repository, if the app has one
+save_file() {
+  [ -f "$1" ] || return 0
+  mkdir -p "$(dirname "$2")"
+  cp "$1" "$2"
+  echo "Saved the $3"
+}
+
+# restore_file <saved copy> <file> <description> <what to do next>: put the saved file in place, backing up the one
+# it replaces. Readable only by you, as both apps keep these files.
+restore_file() {
+  local saved="$1" target="$2" relative="${2#"$HOME"/}"
+  [ -f "$saved" ] || return 0
+  cmp -s "$saved" "$target" && return 0
+  if [ -f "$target" ]; then
+    mkdir -p "$BACKUP_DIR/$(dirname "$relative")"
+    cp "$target" "$BACKUP_DIR/$relative"
+    echo "Backed up ~/$relative to $BACKUP_DIR"
+  fi
+  install -D -m 0600 "$saved" "$target"
+  echo "Loaded the $3; $4"
+}
+
 dump() {
   mkdir -p "$APPS_DIR"
 
-  if [ -f "$OPENLOGI_CONFIG" ]; then
-    mkdir -p "$APPS_DIR/openlogi"
-    cp "$OPENLOGI_CONFIG" "$APPS_DIR/openlogi/config.toml"
-    echo "Saved the OpenLogi config"
-  fi
+  save_file "$OPENLOGI_CONFIG" "$APPS_DIR/openlogi/config.toml" "OpenLogi config"
+  save_file "$CLAUDE_SETTINGS" "$APPS_DIR/claude/settings.json" "Claude Code settings"
 
   if [ -f "$MIMEAPPS" ]; then
     # The [Default Applications] section as mime-type=desktop-entry lines. JetBrains IDE entries carry an
@@ -84,18 +106,10 @@ find_desktop_entry() {
 }
 
 load() {
-  if [ -f "$APPS_DIR/openlogi/config.toml" ]; then
-    if ! cmp -s "$APPS_DIR/openlogi/config.toml" "$OPENLOGI_CONFIG"; then
-      if [ -f "$OPENLOGI_CONFIG" ]; then
-        mkdir -p "$BACKUP_DIR/.config/openlogi"
-        cp "$OPENLOGI_CONFIG" "$BACKUP_DIR/.config/openlogi/config.toml"
-        echo "Backed up ~/.config/openlogi/config.toml to $BACKUP_DIR"
-      fi
-      mkdir -p "$(dirname "$OPENLOGI_CONFIG")"
-      cp "$APPS_DIR/openlogi/config.toml" "$OPENLOGI_CONFIG"
-      echo "Loaded the OpenLogi config; restart OpenLogi if it is running"
-    fi
-  fi
+  restore_file "$APPS_DIR/openlogi/config.toml" "$OPENLOGI_CONFIG" "OpenLogi config" \
+    "restart OpenLogi if it is running"
+  restore_file "$APPS_DIR/claude/settings.json" "$CLAUDE_SETTINGS" "Claude Code settings" \
+    "they apply to new Claude Code sessions"
 
   if [ -f "$DEFAULT_APPS_FILE" ] && command -v xdg-mime > /dev/null; then
     local mime pattern entry

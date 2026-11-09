@@ -57,7 +57,10 @@ if [ ! -f "$HOME/.pki/nssdb/cert9.db" ]; then
   chmod 700 "$HOME/.pki" "$HOME/.pki/nssdb"
   certutil -d "$NSS_DB" -N --empty-password
 fi
-if modutil -dbdir "$NSS_DB" -list "$MODULE_NAME" > /dev/null 2>&1; then
+# -rawlist reads the registration without loading the module; -list <name> fails while the card is not inserted.
+# Read into a variable first: under pipefail, `grep -q` stopping at the first match can fail the pipeline.
+modules="$(modutil -dbdir "$NSS_DB" -rawlist)"
+if grep -qF "library=\"$MODULE_LIBRARY\" name=\"$MODULE_NAME\"" <<< "$modules"; then
   echo "Chrome already has the $MODULE_NAME module"
 else
   # -force skips the prompt to close the browser; a running Chrome sees the module after a restart
