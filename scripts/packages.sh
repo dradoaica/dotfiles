@@ -289,6 +289,11 @@ github_releases() {
   wsf enable
 }
 
+# IDplug Classic, for the Romanian electronic ID card, and its module in Chrome
+electronic_id() {
+  bash "$SCRIPT_DIR/idplug.sh"
+}
+
 cleanup() {
   bash "$SCRIPT_DIR/cleanup.sh"
 }
@@ -309,6 +314,7 @@ step "JetBrains Toolbox" jetbrains_toolbox
 step Services services
 step "udev rules" udev_rules
 step "GitHub releases" github_releases
+step "Electronic ID" electronic_id
 step Cleanup cleanup
 
 finish "Done."

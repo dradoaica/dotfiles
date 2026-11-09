@@ -24,6 +24,16 @@ microk8s_not_started_at_boot() {
   ! awk 'NR > 1 { print $2 }' <<< "$services" | grep -qx enabled
 }
 kubeconfig_private() { [ ! -e "$HOME/.kube/config" ] || [ "$(stat -c '%a' "$HOME/.kube/config")" = 600 ]; }
+chrome_has_idplug() { modutil -dbdir "sql:$HOME/.pki/nssdb" -list "IDEMIA IDPlug"; }
+firefox_has_idplug() {
+  local library="$HOME/snap/firefox/common/pkcs11/libidplug-pkcs11.so"
+  ! snap list firefox > /dev/null 2>&1 && return
+  cmp /usr/lib/idplugclassic/libidplug-pkcs11.so "$library" || return 1
+  jq -e --arg path "$library" '.policies.SecurityDevices.Add["IDEMIA IDPlug"] == $path' \
+    /etc/firefox/policies/policies.json || return 1
+  snap connections firefox | awk '$2 == "firefox:pcscd" && $3 != "-" { found = 1 } END { exit !found }' \
+    || { echo "firefox:pcscd is not connected" >&2; return 1; }
+}
 wsf_enabled() { wsf status | grep -q '^enabled: yes'; }
 udev_rules_installed() {
   local rule
@@ -84,6 +94,9 @@ check "OpenLogi is installed" installed openlogi
 check "Solaar is not installed" not_installed solaar
 check "balenaEtcher is installed" installed balena-etcher
 check "Wayland Scroll Factor is installed and enabled" wsf_enabled
+check "IDplug Classic is installed" installed idplugclassic
+check "Chrome can use the electronic ID card (IDEMIA IDPlug module)" chrome_has_idplug
+check "Firefox can use the electronic ID card (module, policy and pcscd connection)" firefox_has_idplug
 
 echo "== GNOME"
 check "every extension in gnome/extensions.txt is enabled" extensions_enabled

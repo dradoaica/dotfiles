@@ -1,6 +1,6 @@
 #!/bin/bash
 # Check that every outside source the installer downloads from still works for this Ubuntu release:
-# the PPAs and APT repositories, the Docker Desktop, JetBrains Toolbox, nvm and Flathub
+# the PPAs and APT repositories, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm and Flathub
 # downloads, the GitHub releases in github-debs.sh, and that those sources still offer every package
 # in packages/. Installs nothing, and needs no root. CI runs it every week.
 
@@ -73,6 +73,7 @@ check "Google Chrome" url_exists https://dl.google.com/linux/chrome-stable/deb/d
 echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
 check "JetBrains Toolbox download link and checksum" jetbrains_toolbox_has_download
+check "IDplug Classic download still matches its pinned checksum" bash "$SCRIPT_DIR/idplug.sh" --check
 nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // empty')"
 check "nvm installer (latest release: ${nvm_tag:-not found})" \
   url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"

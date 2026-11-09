@@ -29,6 +29,12 @@ aware that it:
   publishes for it. Installs Docker Desktop the same way from Docker's update feed
   ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
   for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes next to each download.
+- Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
+  [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/idplug.sh`](scripts/idplug.sh)). MAI
+  publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
+  the file. It then registers the card's PKCS#11 module in Chrome's certificate database (`~/.pki/nssdb`) and, for
+  the Firefox snap, copies the module to `~/snap/firefox/common/pkcs11/` (the only place the snap may load it from),
+  adds it with a policy in `/etc/firefox/policies/policies.json` and connects the snap's `pcscd` plug.
 - Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis) and the
   Google Chrome, Docker and GitHub CLI repositories. .NET comes from Ubuntu's own archive.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
@@ -103,6 +109,9 @@ Those files are the full, current list; this is an overview.
   installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and udev rules
   ([`system/udev/`](system/udev)) that let Rapoo's [web driver](https://hub.rapoo.com) and
   [Keychron Launcher](https://launcher.keychron.com) reach their devices in Chrome.
+- **Electronic ID**: IDplug Classic (IDplug Manager) for the Romanian electronic identity card, with its module added
+  to Chrome and Firefox, so sites such as [hub.mai.gov.ro](https://hub.mai.gov.ro/site/login) can log you in with the
+  card.
 - **Touchpad**: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
   speed from the next login.
 - **Fonts and cursors**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/);
@@ -213,7 +222,7 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
   MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's definitions update and its daemon stays off,
   `gh` is logged in, the udev rules are installed and no others were added by hand, the apps from GitHub releases are
-  installed and every GNOME extension is enabled.
+  installed, Chrome and Firefox can use the electronic ID card and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away.
@@ -236,11 +245,11 @@ Keep anything private or specific to one machine out of the repository:
 [CI](.github/workflows/ci.yml) runs on every push and every Monday, in an Ubuntu 26.04 container:
 
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
-  GitHub CLI and Chrome repositories, the Docker Desktop, JetBrains Toolbox, nvm, Flathub and Homebrew
-  downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run catches a
-  source that broke while nothing in this repository changed. It also checks that those sources still offer every
-  package in `packages/`, so a renamed or removed package shows up here rather than during an install. Run the same
-  check locally with `make sources`.
+  GitHub CLI and Chrome repositories, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm, Flathub and
+  Homebrew downloads, and a matching `.deb` in the latest release of each app in `github-debs.sh`. The weekly run
+  catches a source that broke while nothing in this repository changed. It also checks that those sources still
+  offer every package in `packages/`, so a renamed or removed package shows up here rather than during an install.
+  Run the same check locally with `make sources`.
 
 - **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up, that a
@@ -300,6 +309,30 @@ If an app fails after an interrupted update or a full disk, check and fix the Fl
 ```bash
 sudo flatpak repair
 ```
+
+### The Browser Does Not See the Electronic ID Card
+
+IDplug Manager shows the card's certificates, but the browsers only see them through the module that
+`scripts/idplug.sh` adds for them; `make doctor` checks it for both. For Chrome, with the card in the reader, check
+that the module is in `~/.pki/nssdb` and lists the card's tokens:
+
+```bash
+modutil -dbdir sql:$HOME/.pki/nssdb -list "IDEMIA IDPlug"
+```
+
+In Firefox, open **Settings > Privacy & Security > Security Devices**: "IDEMIA IDPlug" should be there, with the
+card's tokens under it. Because of the policy that adds it, Firefox shows "Your browser is being managed by your
+organization" in its settings.
+
+If either is missing, run `bash scripts/idplug.sh`. Then quit the browser completely and start it again.
+
+When a site asks for a certificate, choose the one ending in "(Autentificare)", from the **PKI Application** token,
+and enter the card's 4-digit User PIN; the other two tokens are for signing. The card locks after a few wrong PINs.
+
+If hub.mai.gov.ro answers "A apărut o eroare la autentificare, cod eroare: …" after you choose the certificate and
+enter the PIN, the browser did send the certificate: the code changes on every attempt and does not say what went
+wrong. Quit the browser completely and try again later. If it keeps failing, write to suport.hub@mai.gov.ro with the
+code and screenshots.
 
 ### Login Screen Uses the Wrong Monitor Layout
 

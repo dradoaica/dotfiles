@@ -21,6 +21,7 @@ git
 gnupg2
 jq
 libfuse2t64
+libnss3-tools  # modutil, for scripts/idplug.sh
 net-tools
 pass
 pipx
