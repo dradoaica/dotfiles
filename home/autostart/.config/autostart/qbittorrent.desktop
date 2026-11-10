@@ -1,6 +1,8 @@
 [Desktop Entry]
 Type=Application
-Exec=qbittorrent
+# Wait for the AppIndicator tray (up to 30 seconds): started before it, qBittorrent
+# shows a minimized window, and GNOME posts "qBittorrent is ready", instead of hiding in the tray
+Exec=sh -c "gdbus wait --session --timeout 30 org.kde.StatusNotifierWatcher; exec qbittorrent"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
