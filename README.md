@@ -211,7 +211,7 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   Classic (when MAI's version pinned in `idplug.sh` changes), Homebrew, pipx tools, your GNOME extensions, the Rust
   toolchain, nvm and Node 24 (keeping your global npm packages and removing older 24.x releases; other major versions
   stay). It then removes unused packages and old snap revisions, the same cleanup the installer ends with
-  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
+  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and runs the checks of `make doctor`. A step that fails does
   not stop the others; the failed ones are listed at the end, and the whole output is saved in
   `~/.local/state/dotfiles/update-<time>.log`.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
@@ -245,7 +245,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   repository. `make link` fixes them, removing the stale links.
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
   `~/.dotfiles-backup/` if you want them back.
-- **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade. It checks,
+- **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade; every
+  `make update` ends with it. It checks,
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
   Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
   definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are

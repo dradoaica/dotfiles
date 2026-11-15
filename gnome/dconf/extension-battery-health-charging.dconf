@@ -1,6 +1,6 @@
 [/]
 amend-power-indicator=false
-charging-mode='ful'
+charging-mode='bal'
 default-threshold=true
 device-type=2
 dummy-default-threshold=true

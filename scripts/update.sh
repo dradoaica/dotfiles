@@ -1,7 +1,8 @@
 #!/bin/bash
 # Update everything the installer set up: system packages, firmware, Docker Desktop, the apps from
 # GitHub releases, IDplug Classic, Homebrew, pipx tools, GNOME extensions, the Rust toolchain, nvm and Node 24.
-# Every step runs even if an earlier one failed; the failed steps are listed at the end.
+# It ends with the checks of doctor.sh. Every step runs even if an earlier one failed; the failed steps are listed
+# at the end.
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -98,9 +99,10 @@ cleanup() {
   bash "$SCRIPT_DIR/cleanup.sh"
 }
 
-# Report dotfiles that an update replaced with a regular file
-dotfiles() {
-  bash "$SCRIPT_DIR/link.sh" --check
+# Report what an update changed that it should not have, such as a dotfile replaced with a regular file, and the
+# settings that are not saved yet
+doctor() {
+  bash "$SCRIPT_DIR/doctor.sh"
 }
 
 step APT upgrade_apt
@@ -116,7 +118,7 @@ step "GNOME extensions" gnome_extensions
 step Rust rust
 step Node node_js
 step Cleanup cleanup
-step Dotfiles dotfiles
+step Doctor doctor
 
 # Ubuntu creates this file when an update (a new kernel, glibc, systemd...) needs a restart to take effect
 # and lists the packages that asked for it in reboot-required.pkgs
