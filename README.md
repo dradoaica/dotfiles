@@ -26,7 +26,9 @@ aware that it:
   each script are kept).
 - Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
   GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
-  digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
+  digest GitHub publishes for it; a file without one is not installed. A release is only installed once it is 7 days
+  old, so one published from a hijacked account has time to be noticed and withdrawn (set `GITHUB_DEBS_MIN_AGE_DAYS`
+  to change the wait). Installs Docker Desktop the same way from
   Docker's update feed ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the
   `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
   next to each download.
@@ -39,7 +41,9 @@ aware that it:
 - Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis), listed in
   [`packages/ppas.txt`](packages/ppas.txt), and the Google Chrome, Docker and GitHub CLI repositories, each trusted
   with its own signing key, listed in [`packages/repositories.txt`](packages/repositories.txt). .NET comes from
-  Ubuntu's own archive.
+  Ubuntu's own archive. Each PPA is kept to the packages listed next to it in `ppas.txt`
+  (`/etc/apt/preferences.d/dotfiles-ppas`): anything else it offers ranks below Ubuntu's archive, so a PPA cannot
+  replace a package that Ubuntu provides.
 - Enables a Git pre-commit hook in this repository ([`.githooks/pre-commit`](.githooks/pre-commit)) that runs
   [gitleaks](https://github.com/gitleaks/gitleaks) on what you commit, so a secret is stopped before a push publishes
   it.
@@ -145,10 +149,11 @@ active after you log out and back in:
 | [Compiz windows effect](https://extensions.gnome.org/extension/3210/compiz-windows-effect/)                   | `compiz-windows-effect@hermes83.github.com`            |
 | [Dash to Panel](https://extensions.gnome.org/extension/1160/dash-to-panel/)                                   | `dash-to-panel@jderose9.github.com`                    |
 | [Desktop Cube](https://extensions.gnome.org/extension/4648/desktop-cube/)                                     | `desktop-cube@schneegans.github.com`                   |
-| [Removable Drive Menu](https://extensions.gnome.org/extension/7/removable-drive-menu/)                        | `drive-menu@gnome-shell-extensions.gcampax.github.com` |
 | [Lock Keys](https://extensions.gnome.org/extension/36/lock-keys/)                                             | `lockkeys@vaina.lt`                                    |
 | [Sound Percentage](https://extensions.gnome.org/extension/7426/sound-percentage/)                             | `sound-percentage@subashghimire.info.np`               |
 | [Tiling Shell](https://extensions.gnome.org/extension/7065/tiling-shell/)                                     | `tilingshell@ferrarodomenico.com`                      |
+
+Removable Drive Menu and User Themes come with the `gnome-shell-extensions` package instead, and are only enabled.
 
 ### Not Automated
 
@@ -182,6 +187,9 @@ Themes.
 Loading also resets any of these settings that are set on this machine but no longer saved, so a setting you put back
 to its default and saved with `make dump` goes back to its default everywhere you load it. Keys that hold runtime state
 rather than preferences are never reset.
+Dash to Panel keeps some settings per monitor, under an ID made of the monitor's vendor and serial number. The primary
+monitor's ID is saved as `{primary-monitor}` and replaced with the ID of the primary monitor of the machine that loads
+the settings, so the panel layout follows you to other hardware and the serial number stays out of the repository.
 
 Some app settings cannot be symlinked either, because the app rewrites the file or the file holds names that differ
 per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores them from [`apps/`](apps):
@@ -198,10 +206,10 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 ### Day to Day
 
 - **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
-  so reboot yourself if it asks), Docker Desktop, the apps from GitHub releases, IDplug Classic (when MAI's version
-  pinned in `idplug.sh` changes), Homebrew, pipx tools, your GNOME extensions, the Rust toolchain, nvm and Node 24
-  (keeping your global npm packages and removing older 24.x releases; other major versions stay). It then removes unused
-  packages and old snap revisions, the same cleanup the installer ends with
+  so reboot yourself if it asks), Docker Desktop, the apps from GitHub releases (once a release is 7 days old), IDplug
+  Classic (when MAI's version pinned in `idplug.sh` changes), Homebrew, pipx tools, your GNOME extensions, the Rust
+  toolchain, nvm and Node 24 (keeping your global npm packages and removing older 24.x releases; other major versions
+  stay). It then removes unused packages and old snap revisions, the same cleanup the installer ends with
   ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and reports any dotfile that is no longer linked. A step that fails does
   not stop the others; the failed ones are listed at the end, and the whole output is saved in
   `~/.local/state/dotfiles/update-<time>.log`.
@@ -239,7 +247,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
   Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
   definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are
-  checked for secrets, the udev rules are installed and no others were added by hand, the apps from GitHub releases are
+  checked for secrets, everything listed in `packages/` is installed, the PPAs are kept to their own packages, the
+  udev rules are installed and no others were added by hand, the apps from GitHub releases are
   installed, Chrome and Firefox can use the electronic ID card and every GNOME extension is enabled.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
@@ -262,7 +271,8 @@ Keep anything private or specific to one machine out of the repository:
 
 ### Testing
 
-[CI](.github/workflows/ci.yml) runs on every push and every Monday, in an Ubuntu 26.04 container:
+[CI](.github/workflows/ci.yml) runs on every push to `main`, every pull request and every Monday, in an Ubuntu 26.04
+container:
 
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
   GitHub CLI and Chrome repositories and their signing keys, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm,
@@ -272,11 +282,20 @@ Keep anything private or specific to one machine out of the repository:
   still offer every package in `packages/`, so a renamed or removed package shows up here rather than during an install.
   Run the same check locally with `make sources`.
 
-- **lint**: runs shellcheck on the scripts and `.profile`. Run the same check locally with `make lint`.
+- **packages**: adds the PPAs and repositories as the installer does, then has apt work out an installation of
+  every package in `apt.txt` together, without installing them (`scripts/packages.sh --simulate`). This catches what
+  the sources check cannot: a package that is still offered but no longer installs, because a dependency was renamed
+  or removed, or because it conflicts with another package on the list.
+- **lint**: runs shellcheck on the scripts and `.profile`. The files in `.bashrc.d/` that `.profile` also loads are
+  checked as `sh`, since a login shell that is not bash may read them. Run the same check locally with `make lint`.
 - **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up, that a
   second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
   interactive shell with the linked `.bashrc`, checks that new terminals keep a history longer than Ubuntu's 2,000
   lines, starts login shells with the linked `.profile`, then unlinks everything again.
+- **gnome**: loads the saved GNOME settings into an empty settings database on a private D-Bus session, and checks
+  that a key no longer saved is reset, runtime state is kept, the primary monitor's ID is filled in (or the settings
+  that need it are skipped when there is no monitor to ask about), and that saving them again gives back the saved
+  files. Run the same test locally with `make test`; it does not touch your own settings.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), as a second line
   behind the pre-commit hook, which checks each commit before it can be pushed.
 

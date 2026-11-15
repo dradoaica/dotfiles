@@ -1,4 +1,4 @@
-# shellcheck shell=bash
+# shellcheck shell=sh # .profile also loads this file, possibly from sh
 # Homebrew. A parent shell, or the GNOME session through .profile, may have loaded it already and exported
 # HOMEBREW_PREFIX; loading it again would put Homebrew on PATH once more for every nested shell.
 for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do

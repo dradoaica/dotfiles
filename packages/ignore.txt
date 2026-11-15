@@ -15,7 +15,7 @@ apt:(deckcraft|gridcraft|pdfcraft|photocraft|wordcraft)
 
 # Bases, runtimes and themes that snaps and Flatpak apps install for themselves, and the snaps Ubuntu ships
 snap:(bare|snapd|core[0-9]*)
-snap:(gnome-[0-9-]+|gtk-common-themes|mesa-[0-9]+|wine-platform-.*|gaming-graphics-.*|icon-theme-.*)
+snap:(gnome-[0-9-]+|gnome-core[0-9]+|gtk-common-themes|mesa-[0-9]+|wine-platform-.*|gaming-graphics-.*|icon-theme-.*)
 snap:(firmware-updater|snap-store|snapd-desktop-integration|desktop-security-center|prompting-client)
 # Installed by `pro enable livepatch` (Ubuntu Pro)
 snap:canonical-livepatch

@@ -9,12 +9,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q 'install ok installed'; }
+# Lets Homebrew's commands (gitleaks, brew itself) be found below
+load_homebrew || true
+
+installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
 not_installed() { ! installed "$1"; }
-user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2>/dev/null)" != enabled ]; }
-service_disabled() { [ "$(systemctl is-enabled "$1" 2>/dev/null)" != enabled ]; }
+user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2> /dev/null)" != enabled ]; }
+service_disabled() { [ "$(systemctl is-enabled "$1" 2> /dev/null)" != enabled ]; }
 service_running() { systemctl is-active --quiet "$1"; }
-docker_context_is_desktop() { [ "$(docker context show 2>/dev/null)" = desktop-linux ]; }
+docker_context_is_desktop() { [ "$(docker context show 2> /dev/null)" = desktop-linux ]; }
 # The agent marks each secret key P when a passphrase protects it, and C when it does not
 docker_key_has_passphrase() {
   local keygrips keygrip
@@ -38,7 +41,6 @@ microk8s_not_started_at_boot() {
 secrets_hook_enabled() {
   [ "$(git -C "$ROOT_DIR" config --get core.hooksPath)" = .githooks ] \
     || { echo "enable it with: git -C $ROOT_DIR config core.hooksPath .githooks" >&2; return 1; }
-  load_homebrew || true
   command -v gitleaks > /dev/null || { echo "gitleaks is not installed: brew install gitleaks" >&2; return 1; }
 }
 commits_signed() {
@@ -71,6 +73,26 @@ udev_rules_installed() {
     cmp -s "$rule" "/etc/udev/rules.d/${rule##*/}" || return 1
   done
 }
+# The preferences that keep each PPA to the packages listed for it in packages/ppas.txt
+ppas_pinned() {
+  ppa_preferences | cmp -s - /etc/apt/preferences.d/dotfiles-ppas \
+    || { echo "write them with: make packages" >&2; return 1; }
+}
+# all_installed <list in packages/> <command printing what is installed>: every entry of the list must be among
+# them. The first word of an entry is its name, without the options before it or the tap it comes from.
+all_installed() {
+  local list="$1" installed_names name missing=0
+  shift
+  installed_names="$("$@")" || return 1
+  while read -r name; do
+    grep -qxF "$name" <<< "$installed_names" || { echo "not installed: $name" >&2; missing=1; }
+  done < <(read_list "$list" | sed -E 's/^--[a-z]+[[:space:]]+//' | awk '{ print $1 }' | sed 's|.*/||')
+  return "$missing"
+}
+apt_installed() { dpkg-query -W -f='${db:Status-Status} ${Package}\n' | awk '$1 == "installed" { print $2 }'; }
+snaps_installed() { snap list | awk 'NR > 1 { print $1 }'; }
+flatpaks_installed() { flatpak list --app --columns=application; }
+brews_installed() { brew list -1 --formula && brew list -1 --cask; }
 clamav_daemon_disabled() { service_disabled clamav-daemon.socket && service_disabled clamav-daemon.service; }
 # Rules in /etc/udev/rules.d/ that neither this repository, a package nor snapd installed, which a fresh install
 # would not have
@@ -103,6 +125,7 @@ check "docker uses Docker Desktop (desktop-linux context)" docker_context_is_des
 check "Docker Desktop does not start at login" user_service_disabled docker-desktop
 check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
 check "Docker Engine does not start at boot" service_disabled docker.service
+check "Docker Engine does not start when something connects to its socket" service_disabled docker.socket
 check "containerd does not start at boot" service_disabled containerd.service
 check "the GPG key Docker Desktop stores credentials with has a passphrase" docker_key_has_passphrase
 
@@ -117,6 +140,13 @@ check "the ClamAV daemon does not run in the background" clamav_daemon_disabled
 check "GitHub CLI is logged in" gh auth status
 check "Git signs commits and tags with an SSH key" commits_signed
 check "commits to this repository are checked for secrets first (gitleaks pre-commit hook)" secrets_hook_enabled
+
+echo "== Packages"
+check "every package in packages/apt.txt is installed" all_installed apt.txt apt_installed
+check "every snap in packages/snap.txt is installed" all_installed snap.txt snaps_installed
+check "every app in packages/flatpak.txt is installed" all_installed flatpak.txt flatpaks_installed
+check "every formula and cask in packages/brew.txt is installed" all_installed brew.txt brews_installed
+check "the PPAs can only replace the packages listed for them in packages/ppas.txt" ppas_pinned
 
 echo "== Hardware"
 check "the udev rules in system/udev/ are installed" udev_rules_installed

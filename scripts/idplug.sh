@@ -50,7 +50,7 @@ if [ "$check_only" = true ]; then
   exit 0
 fi
 
-installed="$(dpkg-query -W -f='${Version}' idplugclassic 2>/dev/null || true)"
+installed="$(dpkg-query -W -f='${Version}' idplugclassic 2> /dev/null || true)"
 if [ -n "$installed" ] && ! dpkg --compare-versions "$installed" lt "$VERSION"; then
   echo "IDplug Classic is up to date ($installed)"
 else

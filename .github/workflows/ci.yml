@@ -1,7 +1,9 @@
 name: CI
 
 on:
+  # Branches other than main are checked through their pull request, not twice
   push:
+    branches: [main]
   pull_request:
   # Weekly, so a PPA, repository or release that stops working is caught before the next fresh install
   schedule:
@@ -19,7 +21,8 @@ defaults:
   run:
     shell: bash
 
-# Lint, link and sources run in a container of the release this repository targets, not on the runner's own Ubuntu.
+# Lint, link, sources, packages and gnome run in a container of the release this repository targets, not on the
+# runner's own Ubuntu.
 # Each job has a time limit, so a server that stops answering cannot hold a runner for GitHub's default of 6 hours.
 jobs:
   sources:
@@ -35,6 +38,18 @@ jobs:
         run: bash scripts/check-sources.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  packages:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install GnuPG and sudo
+        # The container runs as root and has no sudo, which the script calls
+        run: apt-get update && apt-get install -y gpg sudo
+      - name: Add the APT sources and check that apt can install every package in packages/apt.txt together
+        run: bash scripts/packages.sh --simulate
 
   lint:
     runs-on: ubuntu-latest
@@ -102,6 +117,18 @@ jobs:
           bash scripts/link.sh --unlink
           if bash scripts/link.sh --check; then exit 1; fi
           test ! -e "$HOME/.config/git/config"
+
+  gnome:
+    runs-on: ubuntu-latest
+    container: ubuntu:26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install dconf and D-Bus
+        run: apt-get update && apt-get install -y dbus-daemon dconf-cli dconf-service make
+      - name: Load and save the GNOME settings on an empty settings database
+        # The same test as `make test` locally
+        run: make test
 
   secrets:
     runs-on: ubuntu-latest

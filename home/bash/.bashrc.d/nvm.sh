@@ -1,12 +1,12 @@
-# shellcheck shell=bash
+# shellcheck shell=sh # .profile also loads this file, possibly from sh
 # nvm, loaded on first use: loading it takes most of a new shell's startup time
 export NVM_DIR="$HOME/.nvm"
 if [ -s "$NVM_DIR/nvm.sh" ]; then
   # Put the newest installed Node matching the default alias (e.g. 24) on PATH now,
   # so node, npm and global npm tools work without loading nvm
-  nvm_default="$(cat "$NVM_DIR/alias/default" 2>/dev/null)"
+  nvm_default="$(cat "$NVM_DIR/alias/default" 2> /dev/null)"
   nvm_default_dir="$(find "$NVM_DIR/versions/node" -mindepth 1 -maxdepth 1 -type d \
-    \( -name "v${nvm_default#v}" -o -name "v${nvm_default#v}.*" \) 2>/dev/null | sort -V | tail -1)"
+    \( -name "v${nvm_default#v}" -o -name "v${nvm_default#v}.*" \) 2> /dev/null | sort -V | tail -1)"
   if [ -n "$nvm_default" ] && [ -n "$nvm_default_dir" ]; then
     # Unless a parent shell, or the GNOME session through .profile, already put it there
     case ":$PATH:" in

@@ -12,6 +12,22 @@ read_list() {
   grep -vE '^[[:space:]]*(#|$)' "$ROOT_DIR/packages/$1" | sed -E 's/[[:space:]]+#.*$//'
 }
 
+# Print the APT preferences that keep each PPA in packages/ppas.txt to its own packages. Everything a PPA offers
+# gets priority 100, below the 500 of Ubuntu's archive: it can still be installed when nothing else provides it,
+# but never replaces a package from Ubuntu. Only the packages listed after the PPA keep priority 500.
+ppa_preferences() {
+  local ppa packages origin
+  echo "# Written by scripts/packages.sh from packages/ppas.txt; changes made here are overwritten"
+  while read -r ppa packages; do
+    # Launchpad names the origin LP-PPA-<owner>-<name>, without the name when it is "ppa"
+    origin="${ppa#ppa:}"
+    origin="LP-PPA-${origin%/ppa}"
+    origin="${origin//\//-}"
+    printf '\nPackage: *\nPin: release o=%s\nPin-Priority: 100\n' "$origin"
+    [ -z "$packages" ] || printf '\nPackage: %s\nPin: release o=%s\nPin-Priority: 500\n' "$packages" "$origin"
+  done < <(read_list ppas.txt)
+}
+
 # Put Homebrew on PATH for this script; fails if it is not installed
 load_homebrew() {
   local brew

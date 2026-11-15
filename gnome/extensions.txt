@@ -8,7 +8,6 @@ compiz-alike-magic-lamp-effect@hermes83.github.com
 compiz-windows-effect@hermes83.github.com
 dash-to-panel@jderose9.github.com
 desktop-cube@schneegans.github.com
-drive-menu@gnome-shell-extensions.gcampax.github.com
 lockkeys@vaina.lt
 sound-percentage@subashghimire.info.np
 tilingshell@ferrarodomenico.com

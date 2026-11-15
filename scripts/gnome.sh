@@ -69,10 +69,53 @@ VOLATILE_KEYS=(
 # Matches a "key=value" line of a dconf dump for any of them
 VOLATILE_PATTERN="^($(IFS='|'; echo "${VOLATILE_KEYS[*]}"))="
 
+# Dash to Panel keeps its per-monitor settings under each monitor's ID (<vendor>-<serial>, e.g. DEL-ABC1234), which
+# differs on every machine. The ID of the primary monitor is saved as this placeholder, and loading puts the ID of
+# the primary monitor of the machine it runs on in its place.
+MONITOR_PLACEHOLDER="{primary-monitor}"
+
+# Print the ID Dash to Panel knows the primary monitor by. Prints nothing when there is no GNOME session to ask, or
+# when the monitor reports no vendor or serial number, which Dash to Panel builds the ID from.
+# Set GNOME_PRIMARY_MONITOR to use that ID instead of asking.
+primary_monitor() {
+  if [ -n "${GNOME_PRIMARY_MONITOR+set}" ]; then
+    echo "$GNOME_PRIMARY_MONITOR"
+    return
+  fi
+  python3 - 2> /dev/null << 'EOF' || true
+from gi.repository import Gio
+
+state = Gio.bus_get_sync(Gio.BusType.SESSION).call_sync(
+    "org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig",
+    "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, 2000, None).unpack()
+# Logical monitors: (x, y, scale, transform, primary, [(connector, vendor, product, serial)], properties)
+for monitor in state[2]:
+    _, vendor, _, serial = monitor[5][0]
+    if monitor[4] and vendor and serial:
+        print(f"{vendor}-{serial}")
+        break
+EOF
+}
+
+# replace <text> <replacement>: copy stdin to stdout with every <text> replaced, both taken literally
+replace() {
+  local line
+  while IFS= read -r line; do
+    printf '%s\n' "${line//"$1"/"$2"}"
+  done
+}
+
 dump() {
+  local name primary
+  primary="$(primary_monitor)"
+  if [ -z "$primary" ]; then
+    echo "Could not find the primary monitor, so the monitor IDs in the settings are saved as they are" >&2
+  fi
   mkdir -p "$DCONF_DIR"
   for name in "${!DCONF_PATHS[@]}"; do
-    dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_PATTERN" || true; } > "$DCONF_DIR/$name.dconf"
+    # With no primary monitor, this replaces the placeholder with itself
+    dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_PATTERN" || true; } \
+      | replace "${primary:-$MONITOR_PLACEHOLDER}" "$MONITOR_PLACEHOLDER" > "$DCONF_DIR/$name.dconf"
   done
   # Only the enabled extensions and the apps pinned to the panel from /org/gnome/shell/, not the whole tree
   local key value
@@ -85,9 +128,12 @@ dump() {
   echo "Saved GNOME settings to $DCONF_DIR"
   # Only the enabled ones: an extension that is installed but turned off is not part of the setup, and
   # `make doctor` expects every listed extension to be enabled. Read first, so a failure cannot empty the list.
-  local extensions
+  # Not the ones a package also installs for everyone: those need no download, and shell.dconf keeps them enabled.
+  local extensions uuid
   if extensions="$(gnome-extensions list --user --enabled)"; then
-    sort <<< "$extensions" > "$EXTENSIONS_FILE"
+    while read -r uuid; do
+      [ -d "/usr/share/gnome-shell/extensions/$uuid" ] || echo "$uuid"
+    done < <(sort <<< "$extensions") > "$EXTENSIONS_FILE"
     echo "Saved the enabled extensions to $EXTENSIONS_FILE"
   else
     echo "Could not list the GNOME extensions; kept $EXTENSIONS_FILE" >&2
@@ -130,7 +176,8 @@ dconf_keys() {
 }
 
 load() {
-  local name path file key
+  local name path file key primary skipped=false
+  primary="$(primary_monitor)"
   for name in "${!DCONF_PATHS[@]}"; do
     path="${DCONF_PATHS[$name]}"
     file="$DCONF_DIR/$name.dconf"
@@ -142,12 +189,22 @@ load() {
     done < <(LC_ALL=C comm -23 \
       <(dconf dump "$path" | { grep -vE "$VOLATILE_PATTERN" || true; } | dconf_keys | LC_ALL=C sort) \
       <(dconf_keys < "$file" | LC_ALL=C sort))
-    dconf load "$path" < "$file"
+    if [ -n "$primary" ]; then
+      replace "$MONITOR_PLACEHOLDER" "$primary" < "$file" | dconf load "$path"
+    else
+      # With no monitor to name, leave the settings kept per monitor as they are on this machine
+      ! grep -qF "$MONITOR_PLACEHOLDER" "$file" || skipped=true
+      { grep -vF "$MONITOR_PLACEHOLDER" "$file" || true; } | dconf load "$path"
+    fi
   done
   if [ -f "$DCONF_DIR/shell.dconf" ]; then
     dconf load /org/gnome/shell/ < "$DCONF_DIR/shell.dconf"
   fi
   echo "Loaded GNOME settings from $DCONF_DIR"
+  if [ "$skipped" = true ]; then
+    echo "Could not find the primary monitor, so the settings Dash to Panel keeps per monitor were not loaded." \
+      "Run this again from a GNOME session." >&2
+  fi
 }
 
 case "${1:-}" in

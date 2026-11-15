@@ -60,7 +60,7 @@ jetbrains_toolbox_has_download() {
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
 # The lists packages.sh adds the sources from
-mapfile -t ppas < <(read_list ppas.txt | sed 's/^ppa://')
+mapfile -t ppas < <(read_list ppas.txt | awk '{ print $1 }' | sed 's/^ppa://')
 mapfile -t repositories < <(read_list repositories.txt | sed "s/{codename}/$VERSION_CODENAME/g")
 for ppa in "${ppas[@]}"; do
   owner="${ppa%%/*}"

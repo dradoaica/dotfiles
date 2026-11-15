@@ -1,7 +1,9 @@
-# PPAs, added by scripts/packages.sh and checked by scripts/check-sources.sh. One PPA per line.
+# PPAs, added by scripts/packages.sh and checked by scripts/check-sources.sh. One PPA per line, followed by the
+# packages wanted from it (names or patterns, as in APT preferences). APT is told to prefer the PPA for those only:
+# anything else it offers ranks below Ubuntu's archive, so a PPA cannot replace a package that Ubuntu provides.
 
-ppa:agornostal/ulauncher
-ppa:openrazer/stable
-ppa:polychromatic/stable
-ppa:qbittorrent-team/qbittorrent-stable
-ppa:s4solutionsllc/nexis
+ppa:agornostal/ulauncher ulauncher
+ppa:openrazer/stable openrazer-* python3-openrazer
+ppa:polychromatic/stable polychromatic*
+ppa:qbittorrent-team/qbittorrent-stable qbittorrent* libtorrent-rasterbar* python3-libtorrent
+ppa:s4solutionsllc/nexis nexis

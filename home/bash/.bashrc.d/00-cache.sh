@@ -1,4 +1,5 @@
-# shellcheck shell=bash
+# .profile also loads this file, possibly from sh, so it is checked as sh; dash and bash both have `local`
+# shellcheck shell=sh disable=SC3043
 # cached_eval <name> <program> <command...>: load the output of a command that prints shell code (like
 # `brew shellenv` or `fzf --bash`), cached in ~/.cache/bashrc/<name>.sh instead of run in every new shell.
 # The cache is rebuilt when the program is newer than it, e.g. after an upgrade. Loaded first (00-).

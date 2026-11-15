@@ -1,10 +1,10 @@
 # Shortcuts for the scripts in scripts/. Run `make` to list them.
 
 SHELL := /bin/bash
-SCRIPTS := scripts/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit
+SCRIPTS := scripts/*.sh tests/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit
 
 .DEFAULT_GOAL := help
-.PHONY: help install update packages link unlink check doctor extensions load dump lint sources drift signing
+.PHONY: help install update packages link unlink check doctor extensions load dump lint test sources drift signing
 
 help: ## List the available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  make %-11s %s\n", $$1, $$2}'
@@ -53,3 +53,6 @@ signing: ## Sign Git commits and tags with an SSH key (creates it and adds it to
 
 lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)
+
+test: ## Test loading and saving the GNOME settings on an empty, private settings database
+	bash tests/gnome.sh
