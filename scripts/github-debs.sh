@@ -3,8 +3,8 @@
 # Uses the GitHub API directly, so it works before `gh auth login`. Each download is checked against the SHA-256
 # digest GitHub publishes for it, and a release asset without one is not installed.
 # That digest comes from the same place as the file, so it does not help when a maintainer's account is taken over
-# and a release is replaced. For that, a release is only installed once it is 7 days old, which gives a bad one
-# time to be noticed and withdrawn. Set GITHUB_DEBS_MIN_AGE_DAYS to change the wait; 0 installs the newest release.
+# and a release is replaced. For that, a release is only installed once it is 7 days old (see github_release in
+# lib.sh); set GITHUB_RELEASE_MIN_AGE_DAYS to change the wait.
 # Usage: github-debs.sh [--check]
 #   --check  only confirm that each app still has a release with a matching .deb and a digest, without installing
 
@@ -16,7 +16,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 # Lines of <owner/repo> <package> <regex matching the release asset>
 mapfile -t PACKAGES < <(read_list github-debs.txt)
-MIN_AGE_DAYS="${GITHUB_DEBS_MIN_AGE_DAYS:-7}"
 
 check_only=false
 case "${1:-}" in
@@ -34,13 +33,9 @@ install_latest() {
   local repo="$1" package="$2" pattern="$3"
   local release latest asset installed deb digest
 
-  # The newest release that is old enough, leaving out drafts and pre-releases
-  release="$(github_api "repos/$repo/releases?per_page=30" | jq -c --argjson days "$MIN_AGE_DAYS" '
-    [.[] | select((.draft or .prerelease) | not)
-         | select((.published_at | fromdateiso8601) <= now - $days * 86400)]
-    | sort_by(.published_at) | last // empty')"
+  release="$(github_release "$repo")"
   if [ -z "$release" ]; then
-    echo "$repo has no release that is at least $MIN_AGE_DAYS days old" >&2
+    echo "$repo has no release that is at least ${GITHUB_RELEASE_MIN_AGE_DAYS:-7} days old" >&2
     return 1
   fi
   latest="$(jq -r '.tag_name | ltrimstr("v")' <<< "$release")"

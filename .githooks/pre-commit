@@ -1,7 +1,7 @@
 #!/bin/bash
 # Stop a commit that adds a secret before it leaves this machine. The repository is public, and the gitleaks scan in
-# CI only runs after a push has already published the commit. install.sh enables this hook with
-# `git config core.hooksPath .githooks`; skip it for one commit with `git commit --no-verify`.
+# CI only runs after a push has already published the commit. install.sh enables the hooks in this folder with
+# `git config core.hooksPath .githooks`; skip this one for one commit with `git commit --no-verify`.
 
 set -euo pipefail
 

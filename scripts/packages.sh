@@ -164,10 +164,11 @@ rust() {
 }
 
 node_js() {
-  # The newest nvm release; PROFILE=/dev/null stops the installer editing ~/.bashrc, since
-  # home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
+  # The newest nvm release that is at least 7 days old; PROFILE=/dev/null stops the installer editing ~/.bashrc,
+  # since home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
   local nvm_tag
-  nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name')"
+  nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name')"
+  [ -n "$nvm_tag" ] || { echo "Found no nvm release to install" >&2; return 1; }
   curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$nvm_tag/install.sh" | PROFILE=/dev/null bash
   export NVM_DIR="$HOME/.nvm"
   # nvm is not written for `set -u`

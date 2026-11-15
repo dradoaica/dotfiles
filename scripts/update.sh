@@ -57,12 +57,17 @@ rust() {
 node_js() {
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] || { echo "nvm is not installed, skipping"; return; }
-  # nvm is a Git checkout; move it to its newest release tag
-  local newest_commit newest_tag
+  # nvm is a Git checkout; move it forward to its newest release tag that is at least 7 days old, the same wait
+  # as for the releases the installer downloads (see github_release in lib.sh)
+  local tags oldest_allowed newest_tag
   git -C "$NVM_DIR" fetch --tags --quiet
-  newest_commit="$(git -C "$NVM_DIR" rev-list --tags --max-count=1)"
-  newest_tag="$(git -C "$NVM_DIR" describe --abbrev=0 --tags --match 'v[0-9]*' "$newest_commit")"
-  git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet "$newest_tag"
+  tags="$(git -C "$NVM_DIR" for-each-ref --sort=-creatordate --format='%(creatordate:unix) %(refname:short)' \
+    'refs/tags/v[0-9]*')"
+  oldest_allowed="$(($(date +%s) - ${GITHUB_RELEASE_MIN_AGE_DAYS:-7} * 86400))"
+  newest_tag="$(awk -v oldest_allowed="$oldest_allowed" '$1 <= oldest_allowed { print $2; exit }' <<< "$tags")"
+  if [ -n "$newest_tag" ] && git -C "$NVM_DIR" merge-base --is-ancestor HEAD "$newest_tag"; then
+    git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet "$newest_tag"
+  fi
   # nvm is not written for `set -u`
   set +u
   . "$NVM_DIR/nvm.sh"

@@ -114,7 +114,7 @@ extensions_enabled() {
   enabled="$(gnome-extensions list --enabled)"
   while read -r uuid; do
     grep -qxF "$uuid" <<< "$enabled" || { echo "not enabled: $uuid" >&2; return 1; }
-  done < <(grep -vE '^[[:space:]]*(#|$)' "$ROOT_DIR/gnome/extensions.txt")
+  done < <(list_entries "$ROOT_DIR/gnome/extensions.txt")
 }
 
 echo "== Dotfiles"
@@ -164,6 +164,11 @@ check "Firefox can use the electronic ID card (module, policy and pcscd connecti
 
 echo "== GNOME"
 check "every extension in gnome/extensions.txt is enabled" extensions_enabled
+
+# Settings changed on this machine and not saved, which a fresh install would not get
+echo "== Settings"
+check "the GNOME extensions and settings are the ones saved in gnome/" bash "$SCRIPT_DIR/gnome.sh" check
+check "the app settings are the ones saved in apps/" bash "$SCRIPT_DIR/apps.sh" check
 
 if [ "$failed_checks" -gt 0 ]; then
   echo "$failed_checks check(s) failed" >&2

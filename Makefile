@@ -1,7 +1,7 @@
 # Shortcuts for the scripts in scripts/. Run `make` to list them.
 
 SHELL := /bin/bash
-SCRIPTS := scripts/*.sh tests/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit
+SCRIPTS := scripts/*.sh tests/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit .githooks/pre-push
 
 .DEFAULT_GOAL := help
 .PHONY: help install update packages link unlink check doctor extensions load dump lint test sources drift signing
@@ -54,5 +54,5 @@ signing: ## Sign Git commits and tags with an SSH key (creates it and adds it to
 lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)
 
-test: ## Test loading and saving the GNOME settings on an empty, private settings database
-	bash tests/gnome.sh
+test: ## Run the tests in tests/, which use a private home directory and settings database
+	@for test in tests/*.sh; do echo "== $$test"; bash "$$test" || exit 1; done

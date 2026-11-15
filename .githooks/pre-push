@@ -1,0 +1,8 @@
+#!/bin/bash
+# Run the checks that need no network before a push publishes the commits. main is pushed to directly, so CI only
+# reports a failure once it is public. They run on the files as they are now, which may hold changes that are not
+# committed yet. Skip them for one push with `git push --no-verify`.
+
+set -euo pipefail
+
+make --no-print-directory lint test

@@ -21,7 +21,7 @@ defaults:
   run:
     shell: bash
 
-# Lint, link, sources, packages and gnome run in a container of the release this repository targets, not on the
+# Lint, link, sources, packages and test run in a container of the release this repository targets, not on the
 # runner's own Ubuntu.
 # Each job has a time limit, so a server that stops answering cannot hold a runner for GitHub's default of 6 hours.
 jobs:
@@ -118,15 +118,15 @@ jobs:
           if bash scripts/link.sh --check; then exit 1; fi
           test ! -e "$HOME/.config/git/config"
 
-  gnome:
+  test:
     runs-on: ubuntu-latest
     container: ubuntu:26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install dconf and D-Bus
-        run: apt-get update && apt-get install -y dbus-daemon dconf-cli dconf-service make
-      - name: Load and save the GNOME settings on an empty settings database
+      - name: Install dconf, D-Bus, jq and make
+        run: apt-get update && apt-get install -y dbus-daemon dconf-cli dconf-service jq make
+      - name: Load, save and check the GNOME and app settings in an empty home directory, and report drift
         # The same test as `make test` locally
         run: make test
 

@@ -7,9 +7,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC2034 # used by the scripts that source this file
 PREREQUISITES=(curl flatpak jq software-properties-common stow wget)
 
-# Print the entries of a list in packages/, without comments and blank lines
+# list_entries <file>: print the entries of a list, without comments and blank lines
+list_entries() {
+  grep -vE '^[[:space:]]*(#|$)' "$1" | sed -E 's/[[:space:]]+#.*$//'
+}
+
+# Print the entries of a list in packages/
 read_list() {
-  grep -vE '^[[:space:]]*(#|$)' "$ROOT_DIR/packages/$1" | sed -E 's/[[:space:]]+#.*$//'
+  list_entries "$ROOT_DIR/packages/$1"
+}
+
+# replace <text> <replacement>: copy stdin to stdout with every <text> replaced, both taken literally
+replace() {
+  local text
+  # The x keeps the newlines at the end, which $(...) would drop
+  text="$(cat; printf x)"
+  text="${text%x}"
+  printf '%s' "${text//"$1"/"$2"}"
 }
 
 # Print the APT preferences that keep each PPA in packages/ppas.txt to its own packages. Everything a PPA offers
@@ -30,13 +44,15 @@ ppa_preferences() {
 
 # Put Homebrew on PATH for this script; fails if it is not installed
 load_homebrew() {
+  # Homebrew 7 asks before `brew install` and `brew upgrade` by default; scripts must not stop for that.
+  # (Older versions ignore the variable, but would reject a --yes flag.)
+  export HOMEBREW_NO_ASK=1
+  # The shell that started this script may have loaded it already
+  ! command -v brew > /dev/null || return 0
   local brew
   for brew in /home/linuxbrew/.linuxbrew/bin/brew ~/.linuxbrew/bin/brew; do
     if [ -x "$brew" ]; then
       eval "$("$brew" shellenv)"
-      # Homebrew 7 asks before `brew install` and `brew upgrade` by default; scripts must not stop for that.
-      # (Older versions ignore the variable, but would reject a --yes flag.)
-      export HOMEBREW_NO_ASK=1
       return 0
     fi
   done
@@ -51,6 +67,36 @@ github_api() {
     auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
   fi
   curl -fsSL "${auth[@]}" "https://api.github.com/$1"
+}
+
+# github_release <owner/repo>: print, as JSON, the newest release of a repository that is at least 7 days old,
+# leaving out drafts and pre-releases, or nothing when there is none. A release published from a maintainer's
+# hijacked account then has a week to be noticed and withdrawn before it is installed here.
+# Set GITHUB_RELEASE_MIN_AGE_DAYS to change the wait; 0 gives the newest release.
+github_release() {
+  github_api "repos/$1/releases?per_page=30" | jq -c --argjson days "${GITHUB_RELEASE_MIN_AGE_DAYS:-7}" '
+    [.[] | select((.draft or .prerelease) | not)
+         | select((.published_at | fromdateiso8601) <= now - $days * 86400)]
+    | sort_by(.published_at) | last // empty'
+}
+
+# differences <saved folder> <folder>: print what differs between the saved files and the same files as they are
+# on this machine now, as a diff without the lines around each change; fails when there are differences
+differences() {
+  local changes links
+  links="$(mktemp -d)"
+  # Through links, so the diff names the files saved/... and now/... instead of by their full paths
+  ln -s "$1" "$links/saved"
+  ln -s "$2" "$links/now"
+  if changes="$(cd "$links" && diff -r -U0 saved now)"; then
+    rm -rf "$links"
+    return 0
+  fi
+  rm -rf "$links"
+  # Without the command diff prints for each file, and the time after each file name
+  sed -E '/^diff /d; s/^((---|\+\+\+) [^\t]*)\t.*/\1/' <<< "$changes"
+  echo "Save these changes with \`make dump\`, or undo them with \`make load\`" >&2
+  return 1
 }
 
 failed_checks=0

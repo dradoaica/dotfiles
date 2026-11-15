@@ -4,6 +4,7 @@
 #        gnome.sh extensions   install the extensions listed in gnome/extensions.txt
 #        gnome.sh update       update the user-installed extensions
 #        gnome.sh load         apply the saved settings to this session
+#        gnome.sh check        report the extensions and settings that differ from the saved ones, changing nothing
 
 set -euo pipefail
 
@@ -97,14 +98,6 @@ for monitor in state[2]:
 EOF
 }
 
-# replace <text> <replacement>: copy stdin to stdout with every <text> replaced, both taken literally
-replace() {
-  local line
-  while IFS= read -r line; do
-    printf '%s\n' "${line//"$1"/"$2"}"
-  done
-}
-
 dump() {
   local name primary
   primary="$(primary_monitor)"
@@ -156,7 +149,7 @@ gext_bin() {
 extensions() {
   local gext uuids
   gext="$(gext_bin)"
-  mapfile -t uuids < <(grep -vE '^[[:space:]]*(#|$)' "$EXTENSIONS_FILE")
+  mapfile -t uuids < <(list_entries "$EXTENSIONS_FILE")
   # The filesystem backend installs without a confirmation dialog per extension;
   # new extensions become active after the next login
   "$gext" --filesystem install "${uuids[@]}"
@@ -207,10 +200,24 @@ load() {
   fi
 }
 
+# Save the extensions and settings of this machine to a temporary folder and compare them with the saved ones
+check_saved() {
+  CHECK_DIR="$(mktemp -d)"
+  trap 'rm -rf "$CHECK_DIR"' EXIT
+  # Start from the saved files: dump keeps the list of extensions when it cannot read them
+  cp -r "$ROOT_DIR/gnome/." "$CHECK_DIR"
+  DCONF_DIR="$CHECK_DIR/dconf"
+  EXTENSIONS_FILE="$CHECK_DIR/extensions.txt"
+  dump > /dev/null
+  differences "$ROOT_DIR/gnome" "$CHECK_DIR"
+  echo "The GNOME extensions and settings are the saved ones"
+}
+
 case "${1:-}" in
   dump) dump ;;
   extensions) extensions ;;
   update) update ;;
   load) load ;;
-  *) echo "Usage: $(basename "$0") dump|extensions|update|load" >&2; exit 1 ;;
+  check) check_saved ;;
+  *) echo "Usage: $(basename "$0") dump|extensions|update|load|check" >&2; exit 1 ;;
 esac

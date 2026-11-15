@@ -79,8 +79,8 @@ echo "== Downloads"
 check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
 check "JetBrains Toolbox download link and checksum" jetbrains_toolbox_has_download
 check "IDplug Classic download matches its pinned checksum and installs on this release" bash "$SCRIPT_DIR/idplug.sh" --check
-nvm_tag="$(github_api repos/nvm-sh/nvm/releases/latest | jq -r '.tag_name // empty')"
-check "nvm installer (latest release: ${nvm_tag:-not found})" \
+nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name // empty')"
+check "nvm installer (release: ${nvm_tag:-not found})" \
   url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"
 check "Flathub repository" url_exists https://flathub.org/repo/flathub.flatpakrepo
 check "Homebrew installer" url_exists https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh

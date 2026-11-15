@@ -41,10 +41,11 @@ is_linked() {
 
 # Print the symlinks in $HOME that point into home/ at a file that is no longer there, because it was removed from
 # the repository. Stow only knows about the files that are still there, so it never removes these.
-# Skips caches, snaps and the trash, which never hold dotfiles.
+# Skips caches, snaps and the trash, which never hold dotfiles. -xtype l (a link to nothing) comes last: it has to
+# look up every file it is asked about, and the tests before it leave it only the links into home/.
 stale_links() {
   find "$HOME" -xdev \( -path "$HOME/.cache" -o -path "$HOME/snap" -o -path "$HOME/.local/share/Trash" \) -prune \
-    -o -xtype l -lname "*${PACKAGES_DIR#"$HOME"/}/*" -print
+    -o -type l -lname "*${PACKAGES_DIR#"$HOME"/}/*" -xtype l -print
 }
 
 backed_up=false

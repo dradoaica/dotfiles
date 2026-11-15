@@ -4,21 +4,32 @@
 # Usage: apps.sh dump   save the OpenLogi config, Claude Code settings, default apps, VS Code extensions and Helm
 #                       repositories
 #        apps.sh load   apply them to this machine
+#        apps.sh check  report the ones that differ from the saved ones, changing nothing
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
-APPS_DIR="$ROOT_DIR/apps"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
 OPENLOGI_CONFIG="$HOME/.config/openlogi/config.toml"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 MIMEAPPS="$HOME/.config/mimeapps.list"
-DEFAULT_APPS_FILE="$APPS_DIR/default-apps.txt"
-VSCODE_EXTENSIONS_FILE="$APPS_DIR/vscode-extensions.txt"
-HELM_REPOS_FILE="$APPS_DIR/helm-repositories.txt"
+# The Claude Code settings name files in the home directory by their full path. They are saved with this in its
+# place, and loaded with the home directory of the user who loads them.
+HOME_PLACEHOLDER="{home}"
+
+# use_apps_dir <folder>: save to and load from that folder
+use_apps_dir() {
+  APPS_DIR="$1"
+  SAVED_OPENLOGI_CONFIG="$APPS_DIR/openlogi/config.toml"
+  SAVED_CLAUDE_SETTINGS="$APPS_DIR/claude/settings.json"
+  DEFAULT_APPS_FILE="$APPS_DIR/default-apps.txt"
+  VSCODE_EXTENSIONS_FILE="$APPS_DIR/vscode-extensions.txt"
+  HELM_REPOS_FILE="$APPS_DIR/helm-repositories.txt"
+}
+use_apps_dir "$ROOT_DIR/apps"
 
 # Where desktop entries are installed (user, system, snap, Flatpak)
 DESKTOP_DIRS=(
@@ -61,8 +72,12 @@ restore_file() {
 dump() {
   mkdir -p "$APPS_DIR"
 
-  save_file "$OPENLOGI_CONFIG" "$APPS_DIR/openlogi/config.toml" "OpenLogi config"
-  save_file "$CLAUDE_SETTINGS" "$APPS_DIR/claude/settings.json" "Claude Code settings"
+  save_file "$OPENLOGI_CONFIG" "$SAVED_OPENLOGI_CONFIG" "OpenLogi config"
+  if [ -f "$CLAUDE_SETTINGS" ]; then
+    mkdir -p "$(dirname "$SAVED_CLAUDE_SETTINGS")"
+    replace "$HOME" "$HOME_PLACEHOLDER" < "$CLAUDE_SETTINGS" > "$SAVED_CLAUDE_SETTINGS"
+    echo "Saved the Claude Code settings"
+  fi
 
   if [ -f "$MIMEAPPS" ]; then
     # The [Default Applications] section as mime-type=desktop-entry lines. JetBrains IDE entries carry an
@@ -106,10 +121,16 @@ find_desktop_entry() {
 }
 
 load() {
-  restore_file "$APPS_DIR/openlogi/config.toml" "$OPENLOGI_CONFIG" "OpenLogi config" \
+  restore_file "$SAVED_OPENLOGI_CONFIG" "$OPENLOGI_CONFIG" "OpenLogi config" \
     "restart OpenLogi if it is running"
-  restore_file "$APPS_DIR/claude/settings.json" "$CLAUDE_SETTINGS" "Claude Code settings" \
-    "they apply to new Claude Code sessions"
+  if [ -f "$SAVED_CLAUDE_SETTINGS" ]; then
+    local claude_settings
+    claude_settings="$(mktemp)"
+    replace "$HOME_PLACEHOLDER" "$HOME" < "$SAVED_CLAUDE_SETTINGS" > "$claude_settings"
+    restore_file "$claude_settings" "$CLAUDE_SETTINGS" "Claude Code settings" \
+      "they apply to new Claude Code sessions"
+    rm -f "$claude_settings"
+  fi
 
   if [ -f "$DEFAULT_APPS_FILE" ] && command -v xdg-mime > /dev/null; then
     local mime pattern entry
@@ -146,8 +167,22 @@ load() {
   fi
 }
 
+# Save the settings of this machine to a temporary folder and compare them with the saved ones
+check_saved() {
+  local saved_dir="$APPS_DIR"
+  CHECK_DIR="$(mktemp -d)"
+  trap 'rm -rf "$CHECK_DIR"' EXIT
+  # Start from the saved files: dump keeps the ones whose app is not installed here
+  cp -r "$saved_dir/." "$CHECK_DIR"
+  use_apps_dir "$CHECK_DIR"
+  dump > /dev/null
+  differences "$saved_dir" "$CHECK_DIR"
+  echo "The app settings are the saved ones"
+}
+
 case "${1:-}" in
   dump) dump ;;
   load) load ;;
-  *) echo "Usage: $(basename "$0") dump|load" >&2; exit 1 ;;
+  check) check_saved ;;
+  *) echo "Usage: $(basename "$0") dump|load|check" >&2; exit 1 ;;
 esac

@@ -27,11 +27,10 @@ aware that it:
 - Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
   GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
   digest GitHub publishes for it; a file without one is not installed. A release is only installed once it is 7 days
-  old, so one published from a hijacked account has time to be noticed and withdrawn (set `GITHUB_DEBS_MIN_AGE_DAYS`
-  to change the wait). Installs Docker Desktop the same way from
-  Docker's update feed ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the
-  `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
-  next to each download.
+  old, so one published from a hijacked account has time to be noticed and withdrawn; the same wait applies to nvm (set
+  `GITHUB_RELEASE_MIN_AGE_DAYS` to change it). Installs Docker Desktop the same way from Docker's update feed
+  ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
+  for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes next to each download.
 - Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
   [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/idplug.sh`](scripts/idplug.sh)). MAI
   publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
@@ -44,9 +43,10 @@ aware that it:
   Ubuntu's own archive. Each PPA is kept to the packages listed next to it in `ppas.txt`
   (`/etc/apt/preferences.d/dotfiles-ppas`): anything else it offers ranks below Ubuntu's archive, so a PPA cannot
   replace a package that Ubuntu provides.
-- Enables a Git pre-commit hook in this repository ([`.githooks/pre-commit`](.githooks/pre-commit)) that runs
+- Enables two Git hooks in this repository. [`.githooks/pre-commit`](.githooks/pre-commit) runs
   [gitleaks](https://github.com/gitleaks/gitleaks) on what you commit, so a secret is stopped before a push publishes
-  it.
+  it. [`.githooks/pre-push`](.githooks/pre-push) runs `make lint test` before each push, since `main` is pushed to
+  directly and CI only reports a failure afterwards.
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
   repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
 - Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
@@ -197,7 +197,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
   backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
 - **Claude Code**: `~/.claude/settings.json` (model, theme, plugins, auto mode), copied in and out the same way, since
-  Claude Code rewrites the file. The loaded settings apply to new Claude Code sessions.
+  Claude Code rewrites the file. The home directory in the paths it holds is saved as `{home}`, and loaded as the home
+  directory of whoever loads it. The loaded settings apply to new Claude Code sessions.
 - **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
   are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
 - **VS Code extensions**: the list from `code --list-extensions`; loading installs the ones that are missing.
@@ -237,7 +238,8 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   do not add them again.
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
   removed, OpenLogi, Claude Code, default apps, VS Code extensions or Helm repositories, with `make dump`, then review
-  `git diff` and commit.
+  `git diff` and commit. `make doctor` shows what has changed since the last time, so nothing is left unsaved by
+  accident (`bash scripts/gnome.sh check` and `bash scripts/apps.sh check` show only that).
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
   example after a program overwrote its symlink, and every link left pointing to a file that was removed from the
   repository. `make link` fixes them, removing the stale links.
@@ -248,8 +250,9 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
   definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are
   checked for secrets, everything listed in `packages/` is installed, the PPAs are kept to their own packages, the
-  udev rules are installed and no others were added by hand, the apps from GitHub releases are
-  installed, Chrome and Firefox can use the electronic ID card and every GNOME extension is enabled.
+  udev rules are installed and no others were added by hand, the apps from GitHub releases are installed, Chrome and
+  Firefox can use the electronic ID card, every GNOME extension is enabled, and the GNOME and app settings are the
+  saved ones.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away. The history keeps
@@ -292,10 +295,17 @@ container:
   second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
   interactive shell with the linked `.bashrc`, checks that new terminals keep a history longer than Ubuntu's 2,000
   lines, starts login shells with the linked `.profile`, then unlinks everything again.
-- **gnome**: loads the saved GNOME settings into an empty settings database on a private D-Bus session, and checks
-  that a key no longer saved is reset, runtime state is kept, the primary monitor's ID is filled in (or the settings
-  that need it are skipped when there is no monitor to ask about), and that saving them again gives back the saved
-  files. Run the same test locally with `make test`; it does not touch your own settings.
+- **test**: runs the tests in [`tests/`](tests), each in an empty home directory of its own, so they never read or
+  change your settings. Run them locally with `make test`; the pre-push hook does too.
+  - `gnome.sh` loads the saved GNOME settings into an empty settings database on a private D-Bus session, and checks
+    that a key no longer saved is reset, runtime state is kept, the primary monitor's ID is filled in (or the settings
+    that need it are skipped when there is no monitor to ask about), that saving them again gives back the saved
+    files, and that a setting changed afterwards is reported.
+  - `apps.sh` loads the app settings with stand-ins for VS Code, Helm and `xdg-mime`, and checks that replaced files
+    are backed up, a second load replaces nothing, only missing extensions are installed, and that changes are
+    reported and then saved without the home directory in them.
+  - `drift.sh` runs the drift report against a made-up machine, and checks that it lists only what was installed by
+    hand: not what is in `packages/`, what Ubuntu installed itself or what `ignore.txt` covers.
 - **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), as a second line
   behind the pre-commit hook, which checks each commit before it can be pushed.
 

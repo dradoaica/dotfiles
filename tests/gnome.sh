@@ -80,3 +80,12 @@ done
 diff "$GNOME_TEST_DIR/repo/gnome/extensions.txt" "$ROOT_DIR/gnome/extensions.txt" \
   || fail "saving without GNOME Shell changes the list of extensions"
 echo "ok    saving the loaded settings gives back the saved ones"
+
+echo "== Check"
+GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null || fail "the settings differ from the ones just saved"
+echo "ok    nothing differs after a dump"
+dconf write /org/gnome/desktop/interface/changed-since "'value'"
+if GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null 2>&1; then
+  fail "a changed setting was not reported"
+fi
+echo "ok    a changed setting is reported"
