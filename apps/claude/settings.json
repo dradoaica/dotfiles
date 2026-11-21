@@ -1,4 +1,5 @@
 {
+  "model": "opus",
   "enabledPlugins": {
     "gitkraken-hooks@gitkraken": true
   },
@@ -43,6 +44,5 @@
       "**Trusted repo**: {home}/Projects/dotfiles and its remote https://github.com/dradoaica/dotfiles.git — routine edits, commits, and pushes here are expected",
       "**Org-specific CLIs**: None configured — microk8s, docker, apt/dpkg/snap/flatpak, gsettings/dconf, and GitHub CLI (gh) are used routinely per shell history and transcripts but are standard package/system tooling, not org-specific"
     ]
-  },
-  "model": "opus"
+  }
 }
