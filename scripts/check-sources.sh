@@ -12,15 +12,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 source /etc/os-release
 
-# curl retries a rate limit (HTTP 429) and server errors, waiting longer each time (1, 2, 4... seconds, or as long as
-# the server asks), which the Snap Store needs when many checks run in a row. A server that stops answering fails the
-# check instead of holding up the others.
-CURL_RETRY=(--retry 5 --retry-max-time 120 --max-time 60)
+# curl retries a rate limit (HTTP 429), a server error and a connection that fails before the server answers, waiting
+# longer each time (1, 2, 4... seconds, or as long as the server asks). The Snap Store has both rate-limited the checks
+# and closed the TLS handshake when many of them run in a row. A server that stops answering fails the check instead
+# of holding up the others.
+CURL_RETRY=(--retry 5 --retry-all-errors --retry-max-time 120 --max-time 60)
+
+# url_found <curl arguments...>: succeed when the server answers with a 2xx status. Not with --fail, which would make
+# --retry-all-errors retry a 404 too, though that answer means the source is gone.
+url_found() {
+  local status
+  status="$(curl -sSL "${CURL_RETRY[@]}" -o /dev/null -w '%{http_code}' "$@")" || return
+  if [[ "$status" != 2?? ]]; then
+    echo "The server answered with HTTP $status" >&2
+    return 1
+  fi
+}
 
 # Fetch only the first byte, so large files are not downloaded
-url_exists() { curl -fsSL "${CURL_RETRY[@]}" --range 0-0 -o /dev/null "$1"; }
-
-url_found() { curl -fsSL "${CURL_RETRY[@]}" -o /dev/null "$@"; }
+url_exists() { url_found --range 0-0 "$1"; }
 
 apt_index="$(mktemp)"
 trap 'rm -f "$apt_index"' EXIT
