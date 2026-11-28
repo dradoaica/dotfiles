@@ -2,7 +2,7 @@
 # The store Docker Desktop keeps registry credentials in: pass, with a GPG key named "Docker Desktop". GnuPG asks for
 # the key's passphrase in a dialog; when Docker Desktop first needs it, the dialog can save it in the login keyring,
 # which unlocks it from then on when you log in.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Docker credentials"
 
 set -euo pipefail

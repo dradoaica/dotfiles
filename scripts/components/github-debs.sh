@@ -4,7 +4,7 @@
 # works before `gh auth login`. Each download is checked against the SHA-256 digest GitHub publishes for it, and an
 # asset without one is not installed. That digest comes from the same place as the file, so it does not help when a
 # maintainer's account is taken over and a release is replaced; the wait is for that.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Apps from GitHub releases"
 
 set -euo pipefail

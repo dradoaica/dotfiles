@@ -2,7 +2,7 @@
 # Homebrew, and the formulae and casks in packages/brew.txt. Homebrew is installed once, from the newest commit of its
 # installer that is at least RELEASE_MIN_AGE_DAYS old (see lib.sh), not from the branch: the installer runs with the
 # sudo that packages.sh has already unlocked. After that, `brew update` keeps it up to date.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Homebrew"
 
 set -euo pipefail

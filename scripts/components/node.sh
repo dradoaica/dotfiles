@@ -2,7 +2,7 @@
 # nvm, and the newest Node of NODE_MAJOR as the default for new shells (home/bash/.bashrc.d/nvm.sh puts it on PATH).
 # nvm comes from its newest release that is at least RELEASE_MIN_AGE_DAYS old (see lib.sh). Updating keeps the global
 # npm packages and removes the older releases of NODE_MAJOR; other major versions stay.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Node"
 
 set -euo pipefail

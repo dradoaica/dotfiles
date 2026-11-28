@@ -1,6 +1,6 @@
 #!/bin/bash
 # The udev rules in system/udev/, which cannot be symlinked from home/: they go to /etc/udev/rules.d/.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="udev rules"
 
 set -euo pipefail

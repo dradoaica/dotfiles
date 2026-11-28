@@ -6,7 +6,7 @@
 # build: until it is old enough, the installed build is kept, and a machine without Docker Desktop waits for it.
 # `docker` commands go to Docker Desktop (the desktop-linux context), which does not start at login and opens in the
 # tray without its Dashboard.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Docker Desktop"
 
 set -euo pipefail

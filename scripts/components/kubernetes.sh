@@ -1,7 +1,7 @@
 #!/bin/bash
 # MicroK8s (a snap, from packages/snap.txt), merged into ~/.kube/config next to any other clusters, and stopped so it
 # does not run in the background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` after.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Kubernetes (MicroK8s)"
 
 set -euo pipefail

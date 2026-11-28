@@ -4,7 +4,7 @@
 # package only makes them visible to IDplug Manager. MAI publishes neither a checksum nor an update feed, so the
 # download is pinned to the file it served for VERSION: when MAI replaces it, the checksum fails and the pin below
 # needs updating.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Electronic ID (IDplug Classic)"
 
 set -euo pipefail

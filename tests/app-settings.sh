@@ -1,7 +1,7 @@
 #!/bin/bash
-# Test `app-settings.sh load`, `dump` and `check` in an empty home directory, on a copy of the repository, with stand-ins
-# for VS Code, Helm, Homebrew and xdg-mime that only record how they were called. Nothing on the machine it runs on
-# is read or changed. CI runs it, and so does `make test`.
+# Test `app-settings.sh load`, `dump` and `check` in an empty home directory, on a copy of the repository, with
+# stand-ins for VS Code, Helm, Homebrew and xdg-mime that only record how they were called. Nothing on the machine it
+# runs on is read or changed. CI runs it, and so does `make test`.
 
 set -euo pipefail
 

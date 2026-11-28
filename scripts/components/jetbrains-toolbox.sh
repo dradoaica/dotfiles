@@ -1,7 +1,7 @@
 #!/bin/bash
 # JetBrains Toolbox, in /opt/jetbrains-toolbox. Installed once, since it updates itself, from the newest release that
 # is at least RELEASE_MIN_AGE_DAYS old (see lib.sh), checked against the SHA-256 file JetBrains publishes next to it.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="JetBrains Toolbox"
 
 set -euo pipefail

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Firmware updates from LVFS, with fwupdmgr. It never reboots: restart yourself when it asks.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Firmware"
 
 set -euo pipefail

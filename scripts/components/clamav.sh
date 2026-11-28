@@ -1,7 +1,7 @@
 #!/bin/bash
 # ClamAV (from packages/apt.txt): keep its virus definitions up to date, but do not keep its daemon running, which
 # holds about 1 GB of signatures in memory. ClamTk scans on demand with clamscan, without it.
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="ClamAV"
 
 set -euo pipefail

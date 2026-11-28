@@ -1,6 +1,6 @@
 #!/bin/bash
 # The tools installed with pipx, such as gnome-extensions-cli (which scripts/gnome.sh installs).
-# shellcheck disable=SC2034 # read by run_components in lib.sh
+# shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="pipx"
 
 set -euo pipefail

@@ -274,29 +274,37 @@ url_found() {
 url_exists() { url_found --range 0-0 "$1"; }
 
 # Each tool the installer sets up besides the packages in packages/ (Docker Desktop, Node, IDplug...) is one script
-# in scripts/components/, which does everything for it. It defines a function for each action it has something to do
-# for, and leaves out the others:
+# in scripts/components/, which does everything for it. It sets TITLE, the name its output is headed with, and defines
+# a function for each action it has something to do for, leaving out the others:
 #   on_install  set it up (packages.sh)
 #   on_update   update it (update.sh)
 #   on_sources  check, with `check`, that what it downloads can still be found (check-sources.sh)
 #   on_doctor   check, with `check`, that this machine is still set up the way on_install left it (doctor.sh)
 #   on_tracked  print the packages it installs as <manager>:<name>, so drift.sh does not report them
-# They run in this order, which is also the order they are installed in, so each comes after the ones it needs.
+# It ends with `component_main "$@"`. Every script in the folder must be listed here (tests/components.sh checks): they
+# run in this order, which is also the order they are installed in, so each comes after the ones it needs.
 COMPONENTS_DIR="$ROOT_DIR/scripts/components"
 COMPONENTS=(
   rust node docker-desktop docker-credentials kubernetes homebrew jetbrains-toolbox clamav udev github-debs idplug
   firmware pipx
 )
+COMPONENT_ACTIONS=(install update sources doctor tracked)
 
 # run_components <action>: run that action of every component that has one. install and update run as steps; sources
-# and doctor add the component's failed checks to failed_checks.
+# and doctor add the component's failed checks to failed_checks. A component listed but missing counts as a failure.
 run_components() {
-  local action="$1" name file title status
+  local action="$1" name file description title status
   for name in "${COMPONENTS[@]}"; do
     file="$COMPONENTS_DIR/$name.sh"
-    grep -q "^on_$action() {" "$file" || continue
-    # The title the component gives itself in its TITLE=
-    title="$(sed -n 's/^TITLE="\(.*\)"$/\1/p' "$file")"
+    # Its title, then the actions it defines
+    if ! description="$(bash "$file" describe 2>&1)"; then
+      echo "!! Component $name failed to describe itself: $description" >&2
+      failed_steps+=("$name")
+      failed_checks=$((failed_checks + 1))
+      continue
+    fi
+    title="$(head -1 <<< "$description")"
+    grep -qx "$action" <<< "$(tail -n +2 <<< "$description")" || continue
     case "$action" in
       install | update) step "$title" bash "$file" "$action" ;;
       sources | doctor)
@@ -311,13 +319,29 @@ run_components() {
 }
 
 # component_main <action>: what every component script ends with: run its on_<action> function. sources and doctor
-# exit with the number of checks that failed.
+# run without `set -e`, as doctor.sh does, so a command that fails cannot stop the checks after it, and exit with the
+# number of checks that failed. `describe` prints TITLE, then the actions the script defines, one per line.
 component_main() {
+  local action
   case "${1:-}" in
+    describe)
+      [ -n "${TITLE:-}" ] || { echo "$0 sets no TITLE" >&2; exit 1; }
+      echo "$TITLE"
+      for action in "${COMPONENT_ACTIONS[@]}"; do
+        ! declare -F "on_$action" > /dev/null || echo "$action"
+      done
+      exit 0
+      ;;
     install | update | sources | doctor | tracked) ;;
-    *) echo "Usage: $(basename "$0") install|update|sources|doctor|tracked" >&2; exit 1 ;;
+    *) echo "Usage: $(basename "$0") $(IFS='|'; echo "${COMPONENT_ACTIONS[*]}")" >&2; exit 1 ;;
   esac
   declare -F "on_$1" > /dev/null || exit 0
+  case "$1" in
+    sources | doctor)
+      set +e
+      "on_$1"
+      exit "$failed_checks"
+      ;;
+  esac
   "on_$1"
-  case "$1" in sources | doctor) exit "$failed_checks" ;; esac
 }
