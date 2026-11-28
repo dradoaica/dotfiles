@@ -3,12 +3,14 @@
 [![CI](https://github.com/dradoaica/dotfiles/actions/workflows/ci.yml/badge.svg)](https://github.com/dradoaica/dotfiles/actions/workflows/ci.yml)
 
 Scripts and settings for turning a fresh **Ubuntu Desktop 26.04 (minimal installation, amd64)** into a complete
-development workstation.
+development workstation, and for keeping it that way.
 
 - [Before You Run](#before-you-run)
 - [Quick Start](#quick-start)
 - [What's Included](#whats-included)
-- [Dotfiles](#dotfiles)
+- [How It Is Organised](#how-it-is-organised)
+- [Day to Day](#day-to-day)
+- [Testing](#testing)
 - [Post-Install](#post-install)
 - [Troubleshooting](#troubleshooting)
 - [Further Reading](#further-reading)
@@ -16,61 +18,27 @@ development workstation.
 
 ## Before You Run
 
-`scripts/install.sh` makes system-wide changes and replaces some of your configuration files. Read it first, and be
-aware that it:
+`scripts/install.sh` makes system-wide changes and replaces some of your configuration files. It:
 
-- Targets **Ubuntu 26.04 on amd64 only** (the Chrome repository and the Docker Desktop package are amd64-only).
-- Needs `sudo`, runs a full `apt-get upgrade`, and takes a while. It runs in steps (sources, packages, Docker,
-  Kubernetes and so on); a step that fails does not stop the others, and the failed ones are listed at the end, so you
-  can fix them and run it again. The whole output is also saved in `~/.local/state/dotfiles/` (the 10 newest logs of
-  each script are kept).
-- Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
-  GitHub releases ([`scripts/components/github-debs.sh`](scripts/components/github-debs.sh)), after checking each file against the SHA-256
-  digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
-  Docker's update feed ([`scripts/components/docker-desktop.sh`](scripts/components/docker-desktop.sh)), checking it against the
-  `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
-  next to each download. A checksum from the same server as the file does not help when that server or a maintainer's
-  account is taken over, so each of these, nvm and the Homebrew installer are only installed once they are 7 days
-  old, giving a bad release time to be noticed and withdrawn (set `RELEASE_MIN_AGE_DAYS` to change the wait; `0`
-  installs the newest). Docker's feed only offers its newest build: until that is 7 days old, an update keeps the
-  installed build, and a fresh install stops with a message saying when to run it again.
-- Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
-  [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/components/idplug.sh`](scripts/components/idplug.sh)). MAI
-  publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
-  the file. It then registers the card's PKCS#11 module in Chrome's certificate database (`~/.pki/nssdb`) and, for
-  the Firefox snap, copies the module to `~/snap/firefox/common/pkcs11/` (the only place the snap may load it from),
-  adds it with a policy in `/etc/firefox/policies/policies.json` and connects the snap's `pcscd` plug.
-- Adds third-party APT sources: five PPAs (Ulauncher, OpenRazer, Polychromatic, qBittorrent, Nexis), listed in
-  [`packages/ppas.txt`](packages/ppas.txt), and the Google Chrome, Docker and GitHub CLI repositories, each trusted
-  with its own signing key, listed in [`packages/repositories.txt`](packages/repositories.txt). .NET comes from
-  Ubuntu's own archive. Each PPA is kept to the packages listed next to it in `ppas.txt`
-  (`/etc/apt/preferences.d/dotfiles-ppas`): anything else it offers ranks below Ubuntu's archive, so a PPA cannot
-  replace a package that Ubuntu provides.
-- Enables two Git hooks in this repository. [`.githooks/pre-commit`](.githooks/pre-commit) runs
-  [gitleaks](https://github.com/gitleaks/gitleaks) on what you commit, so a secret is stopped before a push publishes
-  it. [`.githooks/pre-push`](.githooks/pre-push) runs `make lint test` before each push, since `main` is pushed to
-  directly and CI only reports a failure afterwards.
+- Targets **Ubuntu 26.04 on amd64 only**, needs `sudo`, runs a full `apt-get upgrade`, and takes a while.
+- Adds third-party APT sources: the PPAs in [`packages/ppas.txt`](packages/ppas.txt), each kept to the packages listed
+  next to it so it cannot replace one of Ubuntu's, and the repositories in
+  [`packages/repositories.txt`](packages/repositories.txt), each trusted with its own signing key.
+- Installs apps from downloads outside Ubuntu and the PPAs (GitHub releases, Docker Desktop, JetBrains Toolbox, nvm,
+  the Homebrew installer, IDplug Classic), each checked against a published or pinned SHA-256. Each is only installed
+  once it is **7 days old**, so a release published from a hijacked account has time to be withdrawn; set
+  `RELEASE_MIN_AGE_DAYS` to change that (`0` installs the newest).
 - Replaces `~/.bashrc`, `~/.profile`, the Git config and the other files under [`home/`](home) with symlinks into this
-  repository. The files it replaces are moved to `~/.dotfiles-backup/<timestamp>/`.
-- Installs the GNOME extensions listed in [`gnome/extensions.txt`](gnome/extensions.txt) from extensions.gnome.org and
-  overwrites the GNOME settings saved in [`gnome/dconf/`](gnome/dconf) (fonts, theme, shortcuts, extension settings).
-- Adds your user to the `microk8s` group and merges the MicroK8s cluster into `~/.kube/config` (other clusters and
-  the current context are kept; the file is made readable only by you), then stops MicroK8s so it does not run in the
-  background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
-- Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context), but does not start it at
-  login. Start it from the app menu or with `systemctl --user start docker-desktop`; it opens in the tray (the
-  Dashboard does not open). Docker Engine is not installed, since Docker Desktop runs its own engine; only the
-  Docker CLI comes from Docker's APT repository.
-- Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date, and disables the ClamAV daemon, which
-  keeps about 1 GB of signatures in memory. ClamTk scans on demand without it.
-- Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
-- Creates a GPG key named "Docker Desktop" and initialises `pass` with it, so Docker Desktop can store registry
-  credentials. GnuPG asks for the key's passphrase in a dialog; when Docker Desktop first needs it, the dialog can save
-  it in your login keyring, which unlocks it from then on when you log in. The key never expires, since `pass` cannot
-  store credentials with an expired one. Machines set up before this made the key without a passphrase, or with
-  GnuPG's default expiry of 3 years: `make doctor` reports both, with the command that fixes each.
+  repository, moving the files it replaces to `~/.dotfiles-backup/<timestamp>/`.
+- Overwrites your GNOME settings and extensions with the ones saved in [`gnome/`](gnome), and some app settings with
+  the ones in [`app-settings/`](app-settings).
+- Removes LibreOffice (the Craft apps replace it) and Solaar (OpenLogi does not work alongside it).
+- Enables the Git hooks in [`.githooks/`](.githooks): gitleaks checks each commit for secrets, and `make lint test`
+  runs before each push.
 
-The script is safe to re-run.
+It runs in steps. A step that fails does not stop the others: the failed ones are listed at the end, so you can fix
+them and run it again, which is safe. The whole output is saved in `~/.local/state/dotfiles/`. Each script starts with
+a comment saying what it does and why; read them before you run it.
 
 ## Quick Start
 
@@ -89,140 +57,74 @@ cd ~/Projects/dotfiles
 bash scripts/install.sh
 ```
 
-Keep the clone where it is afterwards: the symlinks point into it.
-
-The installer runs these steps, which you can also run on their own. The `make` shortcuts work once `packages.sh` has
-installed `make`; run `make` on its own to list them.
-
-| Step                          | Shortcut          | What it does                                                            |
-|-------------------------------|-------------------|-------------------------------------------------------------------------|
-| `scripts/packages.sh`         | `make packages`   | Adds the repositories and installs everything listed below.             |
-| `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.              |
-| `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.         |
-| `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.                     |
-| `scripts/app-settings.sh load`        | `make load`       | Applies OpenLogi, Claude Code, default apps, VS Code and Helm settings. |
-
-When it finishes, **log out and back in** so the new group membership, fonts and GNOME extensions take effect, then
-work through [Post-Install](#post-install).
+Keep the clone where it is afterwards: the symlinks point into it. When the installer finishes, **log out and back
+in** so the new group memberships, fonts and GNOME extensions take effect, then work through
+[Post-Install](#post-install).
 
 ## What's Included
 
-### Installed Automatically
+The lists in [`packages/`](packages) are the full, current list; this is an overview.
 
-The installer reads its package lists from [`packages/`](packages), one file per package manager:
-[`apt.txt`](packages/apt.txt), [`snap.txt`](packages/snap.txt), [`flatpak.txt`](packages/flatpak.txt),
-[`brew.txt`](packages/brew.txt) and [`github-debs.txt`](packages/github-debs.txt) for the apps from GitHub releases,
-plus the APT sources they come from in [`ppas.txt`](packages/ppas.txt) and
-[`repositories.txt`](packages/repositories.txt). Those files are the full, current list; this is an overview.
+- **Development**: Python, Go, Rust (rustup), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby and Node.js (nvm); VS
+  Code, JetBrains Toolbox, GitKraken, the GitHub CLI and Claude Code.
+- **Containers and Kubernetes**: Docker Desktop (not started at login: start it from the app menu, and it opens in
+  the tray), MicroK8s (stopped until you run `microk8s start`), Multipass, kubectl, Helm and K9s.
+- **Apps**: Chrome and Firefox, media and screenshot tools, CD/DVD burning, a BitTorrent client, backups (Déjà Dup),
+  antivirus (ClamAV, scanning on demand), Ulauncher, balenaEtcher, ArtCraft Launcher (for the Craft office and image
+  editors) and Steam.
+- **Hardware**: OpenLogi for Logitech devices, OpenRazer and Polychromatic for Razer, Galaxy Buds Client, Wayland
+  Scroll Factor for touchpad scrolling, and udev rules that let the Rapoo and Keychron web drivers reach their devices.
+- **Electronic ID**: IDplug Classic for the Romanian electronic identity card, set up in Chrome and Firefox.
+- **GNOME**: the extensions in [`gnome/extensions.txt`](gnome/extensions.txt) (ArcMenu, Dash to Panel, Tiling Shell
+  and others), the Inter and JetBrains Mono fonts, and the Bibata, Phinger and Breeze cursors.
 
-- **Package managers**: APT, Snap, Flatpak (with Flathub) and Homebrew.
-- **Development**: Python, Go, Rust (via rustup), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby and Node.js 24 (via
-  nvm); VS Code, JetBrains Toolbox, GitKraken, the GitHub CLI and Claude Code.
-- **Containers and Kubernetes**: Docker Desktop (with its own engine), MicroK8s (stopped until you start it),
-  Multipass, kubectl, Helm and K9s.
-- **Apps**: browsers, media and screenshot tools, CD/DVD burning (Brasero), a BitTorrent client, backups (Déjà Dup),
-  antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher),
-  [ArtCraft Launcher](https://github.com/storytold/craft-launcher) (which installs and updates the Craft image, video,
-  vector, document and CAD editors) and games.
-- **Hardware**: [OpenLogi](https://github.com/AprilNEA/OpenLogi) for Logitech devices (it replaces Solaar, which the
-  installer removes if it finds it), OpenRazer and Polychromatic for Razer, Galaxy Buds Client, and udev rules
-  ([`system/udev/`](system/udev)) that let Rapoo's [web driver](https://hub.rapoo.com) and
-  [Keychron Launcher](https://launcher.keychron.com) reach their devices in Chrome.
-- **Electronic ID**: IDplug Classic (IDplug Manager) for the Romanian electronic identity card, with its module added
-  to Chrome and Firefox, so sites such as [hub.mai.gov.ro](https://hub.mai.gov.ro/site/login) can log you in with the
-  card.
-- **Touchpad**: [Wayland Scroll Factor](https://github.com/daniel-g-carrasco/wayland-scroll-factor), set to 30% scroll
-  speed from the next login.
-- **Fonts and cursors**: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/);
-  Bibata, Phinger and Breeze cursors.
+Not automated, because they need you to answer prompts: proprietary drivers and commit signing (see
+[Post-Install](#post-install)).
 
-### GNOME Extensions
+## How It Is Organised
 
-Installed from extensions.gnome.org with [gnome-extensions-cli](https://github.com/essembeh/gnome-extensions-cli), and
-active after you log out and back in:
+| Folder                | What it holds                                                                              |
+|-----------------------|--------------------------------------------------------------------------------------------|
+| `home/`               | Dotfiles, one folder per program, linked into `~` with GNU Stow.                           |
+| `packages/`           | What to install: one list per package manager, and the APT sources.                        |
+| `gnome/`              | The saved GNOME extensions and settings (`dconf` dumps).                                   |
+| `app-settings/`       | App settings that cannot be symlinked: OpenLogi, Claude Code, default apps, VS Code, Helm. |
+| `system/`             | Files for `/etc`, which cannot be symlinked from `home/` (udev rules).                     |
+| `scripts/`            | The installer and the `make` targets; shared helpers are in `lib.sh`.                      |
+| `scripts/components/` | One script per tool beyond the package lists, such as Docker Desktop or Node.              |
+| `tests/`              | Tests for the scripts, which never touch your own settings.                                |
 
-| Extension                                                                                                     | UUID                                                   |
-|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| [Alphabetical App Grid](https://extensions.gnome.org/extension/4269/alphabetical-app-grid/)                   | `AlphabeticalAppGrid@stuarthayhurst`                   |
-| [ArcMenu](https://extensions.gnome.org/extension/3628/arcmenu/)                                               | `arcmenu@arcmenu.com`                                  |
-| [Battery Health Charging](https://extensions.gnome.org/extension/5724/battery-health-charging/)               | `Battery-Health-Charging@maniacx.github.com`           |
-| [Bing Wallpaper](https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/)                         | `BingWallpaper@ineffable-gmail.com`                    |
-| [Burn My Windows](https://extensions.gnome.org/extension/4679/burn-my-windows/)                               | `burn-my-windows@schneegans.github.com`                |
-| [Clipboard Indicator](https://extensions.gnome.org/extension/779/clipboard-indicator/)                        | `clipboard-indicator@tudmotu.com`                      |
-| [Compiz alike magic lamp effect](https://extensions.gnome.org/extension/3740/compiz-alike-magic-lamp-effect/) | `compiz-alike-magic-lamp-effect@hermes83.github.com`   |
-| [Compiz windows effect](https://extensions.gnome.org/extension/3210/compiz-windows-effect/)                   | `compiz-windows-effect@hermes83.github.com`            |
-| [Dash to Panel](https://extensions.gnome.org/extension/1160/dash-to-panel/)                                   | `dash-to-panel@jderose9.github.com`                    |
-| [Desktop Cube](https://extensions.gnome.org/extension/4648/desktop-cube/)                                     | `desktop-cube@schneegans.github.com`                   |
-| [Lock Keys](https://extensions.gnome.org/extension/36/lock-keys/)                                             | `lockkeys@vaina.lt`                                    |
-| [Sound Percentage](https://extensions.gnome.org/extension/7426/sound-percentage/)                             | `sound-percentage@subashghimire.info.np`               |
-| [Tiling Shell](https://extensions.gnome.org/extension/7065/tiling-shell/)                                     | `tilingshell@ferrarodomenico.com`                      |
+The scripts in `scripts/` that act on the whole machine each do their own part and then the same for every component:
+`packages.sh` installs, `update.sh` updates, `doctor.sh` checks the machine, `check-sources.sh` checks the downloads
+and `drift.sh` lists what is installed but not tracked. A component script does all five for its tool, so everything
+about Docker Desktop, say, is in [`scripts/components/docker-desktop.sh`](scripts/components/docker-desktop.sh). The
+order they run in is `COMPONENTS` in [`scripts/lib.sh`](scripts/lib.sh), which also describes what a component
+defines.
 
-Removable Drive Menu and User Themes come with the `gnome-shell-extensions` package instead, and are only enabled.
+[`scripts/migrations.sh`](scripts/migrations.sh) undoes what earlier versions set up and the current one no longer
+does, so an older machine ends up like a fresh install.
 
-### Not Automated
+## Day to Day
 
-Proprietary drivers ([Post-Install](#post-install)) and commit signing ([Commit Signing](#commit-signing)), which
-need you to answer prompts.
+Run `make` to list every target.
 
-## Dotfiles
+| Command         | What it does                                                                                       |
+|-----------------|----------------------------------------------------------------------------------------------------|
+| `make update`   | Updates every package, tool, firmware and GNOME extension, cleans up, then runs `make doctor`.     |
+| `make doctor`   | Checks, changing nothing, that the machine is as the installer left it and every setting is saved. |
+| `make dump`     | Saves the current GNOME extensions and settings, and the app settings, into the repository.        |
+| `make load`     | Applies the saved GNOME and app settings.                                                          |
+| `make drift`    | Lists what is installed but not in `packages/`, so a fresh install would miss it.                  |
+| `make check`    | Lists the dotfiles that are not linked, or linked to a file no longer in the repository.           |
+| `make link`     | Links the dotfiles, fixing what `make check` reports. `make unlink` removes the links.             |
+| `make packages` | Adds the sources and installs everything, the first part of `make install`.                        |
+| `make sources`  | Checks that every source and download the installer uses still works.                              |
+| `make signing`  | Sets up commit signing (see [Post-Install](#post-install)).                                        |
 
-Configuration lives in [`home/`](home), one folder per program. Each folder mirrors your home directory, and
-[GNU Stow](https://www.gnu.org/software/stow/) links its files into place:
+### Changing the Setup
 
-| Package     | Files                                                                                |
-|-------------|--------------------------------------------------------------------------------------|
-| `autostart` | `~/.config/autostart/` entries for Ksnip, qBittorrent and Galaxy Buds Client         |
-| `bash`      | `~/.bashrc`, `~/.profile`, `~/.bashrc.d/` (Homebrew, nvm, fzf, completions, history) |
-|             | and `~/.inputrc` (case-insensitive completion, ↑/↓ search the history)               |
-| `gh`        | `~/.config/gh/config.yml` (GitHub CLI settings and aliases; not `hosts.yml`)         |
-| `git`       | `~/.config/git/config`, `~/.config/git/ignore`                                       |
-| `k9s`       | `~/.config/k9s/` aliases and plugins                                                 |
-| `ulauncher` | `~/.config/ulauncher/settings.json`                                                  |
-| `vscode`    | `~/.config/Code/User/settings.json`                                                  |
-
-GNOME settings cannot be symlinked, so [`scripts/gnome.sh`](scripts/gnome.sh) saves them to and restores them from
-the repository: the enabled user-installed extensions in [`gnome/extensions.txt`](gnome/extensions.txt), and in
-[`gnome/dconf/`](gnome/dconf) interface (fonts, theme, cursor), keyboard layouts, keyboard shortcuts, window manager,
-mouse and touchpad, power and screen blanking, sound, privacy, the first day of the week, the enabled extensions, the
-apps pinned to the panel, the Files, Text Editor and Ptyxis (terminal) preferences, Déjà Dup's backup settings (not
-the backup folder, which is named after the machine), and the settings of ArcMenu, Dash to Panel, Burn My Windows,
-Tiling Shell, Bing Wallpaper, Battery Health Charging, AppIndicator, Desktop Icons, Compiz windows effect and User
-Themes.
-Loading also resets any of these settings that are set on this machine but no longer saved, so a setting you put back
-to its default and saved with `make dump` goes back to its default everywhere you load it. Keys that hold runtime state
-rather than preferences are never reset.
-Dash to Panel keeps some settings per monitor, under an ID made of the monitor's vendor and serial number. The primary
-monitor's ID is saved as `{primary-monitor}` and replaced with the ID of the primary monitor of the machine that loads
-the settings, so the panel layout follows you to other hardware and the serial number stays out of the repository.
-
-Some app settings cannot be symlinked either, because the app rewrites the file or the file holds names that differ
-per machine. [`scripts/app-settings.sh`](scripts/app-settings.sh) saves them to and restores them from [`app-settings/`](app-settings):
-
-- **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
-  backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
-- **Claude Code**: the model, theme, plugins and auto mode settings from `~/.claude/settings.json`, since Claude Code
-  rewrites the file. Only the keys listed in `CLAUDE_SAVED_KEYS` in `app-settings.sh` are saved, so a setting that holds a
-  secret, such as an `env` block with a token, is never copied into this public repository; `make dump` names the
-  ones it left out. Loading replaces the saved keys and keeps the others as they are. The home directory in the paths
-  the settings hold is saved as `{home}`, and loaded as the home directory of whoever loads them. The loaded settings
-  apply to new Claude Code sessions.
-- **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
-  are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
-- **VS Code extensions**: the list from `code --list-extensions`; loading installs the ones that are missing.
-- **Helm repositories**: the names and URLs from `helm repo list`, added again with `helm repo add`.
-
-### Day to Day
-
-- **Update everything** with `make update`: APT, Snap and Flatpak packages, firmware (with `fwupdmgr`; it never reboots,
-  so reboot yourself if it asks), Docker Desktop, the apps from GitHub releases (once a release is 7 days old), IDplug
-  Classic (when MAI's version pinned in `idplug.sh` changes), Homebrew, pipx tools, your GNOME extensions, the Rust
-  toolchain, nvm and Node 24 (keeping your global npm packages and removing older 24.x releases; other major versions
-  stay). It then removes unused packages and old snap revisions, the same cleanup the installer ends with
-  ([`scripts/cleanup.sh`](scripts/cleanup.sh)), and runs the checks of `make doctor`. A step that fails does
-  not stop the others; the failed ones are listed at the end, and the whole output is saved in
-  `~/.local/state/dotfiles/update-<time>.log`.
 - **Edit a dotfile** in place, in `~` or in the repository: they are the same file. Commit the change.
-- **Add a file** by moving it into the matching package, then re-link it:
+- **Track another dotfile** by moving it into the matching folder of `home/` (or a new one), then linking it:
 
   ```bash
   mkdir -p home/k9s/.config/k9s
@@ -230,101 +132,52 @@ per machine. [`scripts/app-settings.sh`](scripts/app-settings.sh) saves them to 
   bash scripts/link.sh k9s
   ```
 
-- **Add a package** by creating a new folder in `home/`; `link.sh` picks up every folder.
-- **Install an app** by adding it to the matching list in [`packages/`](packages), then running `make packages`.
-- **Find what you installed by hand** with `make drift` (`make dump` runs it too). It lists the APT packages you
-  installed (not the ones Ubuntu did), snaps, Flatpak apps and Homebrew packages that are not in `packages/`, so a
-  fresh install would miss them. Add each one to its list, or to [`packages/ignore.txt`](packages/ignore.txt) to stop
-  reporting it.
-- **Shell additions** go in a new file in `home/bash/.bashrc.d/`, not in `.bashrc`, which stays Ubuntu's default.
-  For a program that prints shell code to load (like `brew shellenv` or `fzf --bash`), use
-  `cached_eval <name> <program> <command...>` from `00-cache.sh`: it keeps the output in `~/.cache/bashrc/` and only
-  runs the program again when it changes, which keeps new shells fast. `.profile` also loads `brew.sh` and `nvm.sh`,
-  so the GNOME session and the apps it starts find Homebrew and Node after the next login (cron and `ssh host command`
-  do not read `.profile`, so they still do not). Both skip what a parent shell already put on `PATH`, so nested shells
-  do not add them again.
-- **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
-  removed, OpenLogi, Claude Code, default apps, VS Code extensions or Helm repositories, with `make dump`, then review
-  `git diff` and commit. `make doctor` shows what has changed since the last time, so nothing is left unsaved by
-  accident (`bash scripts/gnome.sh check` and `bash scripts/app-settings.sh check` show only that).
-- **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
-  example after a program overwrote its symlink, and every link left pointing to a file that was removed from the
-  repository. `make link` fixes them, removing the stale links.
-- **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
-  `~/.dotfiles-backup/` if you want them back.
-- **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade; every
-  `make update` ends with it. It checks, without changing anything, that the dotfiles are linked, Docker uses Docker
-  Desktop, Docker Desktop's GPG key has a passphrase and never expires, MicroK8s does not start at boot,
-  `~/.kube/config` is private, ClamAV's definitions update and its daemon stays off, `gh` is logged in, Git signs
-  commits, commits to this repository are checked for secrets, everything listed in `packages/` is installed, the PPAs
-  are kept to their own packages, the udev rules are installed and no others were added by hand, the apps from GitHub
-  releases are installed, Chrome and Firefox can use the electronic ID card, every GNOME extension is enabled, and the
-  GNOME and app settings are the saved ones.
-- **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
-  <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
-  command is written to the history as soon as it runs, so new terminals can find it straight away. The history keeps
-  up to 100,000 commands in `~/.local/state/bash/history`, not in `~/.bash_history`, which Ubuntu's `.bashrc` (kept
-  as Ubuntu ships it) trims to 2,000 lines whenever a terminal opens.
-
-`link.sh` links individual files rather than whole folders, so programs that write extra files into `~/.config` never
-write them into the repository.
+- **Install an app** by adding it to the matching list in [`packages/`](packages), then running `make packages`. Run
+  `make drift` now and then to catch what you installed by hand; add each one to its list, or to
+  [`packages/ignore.txt`](packages/ignore.txt) to stop it being reported.
+- **Add a tool** that needs more than a package list by copying a script in `scripts/components/`, keeping the actions
+  it needs, and adding its name to `COMPONENTS` in `scripts/lib.sh`.
+- **Change GNOME or app settings** in their own preferences, then run `make dump`, review `git diff` and commit.
+  `make doctor` reports settings that changed and were not saved.
+- **Add to the shell** in a new file in `home/bash/.bashrc.d/`, not in `.bashrc`, which stays as Ubuntu ships it. For a
+  program that prints shell code to load (like `fzf --bash`), use `cached_eval` from `00-cache.sh`, which keeps new
+  shells fast. `.profile` loads Homebrew and Node for the GNOME session too.
 
 ### Machine-Specific Settings
 
-Keep anything private or specific to one machine out of the repository:
+Keep anything private or specific to one machine out of the repository, which is public:
 
 - **Shell**: put it in an extra file in `~/.bashrc.d/`, for example `~/.bashrc.d/local.sh`. Every `*.sh` file there is
   loaded, but only the ones in `home/bash/.bashrc.d/` are tracked.
-- **Git**: put it in `~/.config/git/config.local` (work email; `make signing` writes its settings there too). The Git
-  config includes it, and it is not tracked. `git config --global` writes through the symlink into the repository, so
-  use `git config --file ~/.config/git/config.local` instead.
+- **Git**: put it in `~/.config/git/config.local` (a work email; `make signing` writes its settings there too). The Git
+  config includes it. `git config --global` writes through the symlink into the repository, so use
+  `git config --file ~/.config/git/config.local` instead.
+- **Claude Code**: only the settings listed in `CLAUDE_SAVED_KEYS` in
+  [`scripts/app-settings.sh`](scripts/app-settings.sh) are saved; anything else in `~/.claude/settings.json`, such as
+  a token, stays on the machine.
 
-### Testing
+### The Shell
+
+<kbd>Ctrl</kbd>+<kbd>R</kbd> searches the history with [fzf](https://github.com/junegunn/fzf),
+<kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. ↑ and ↓
+search the history for what you have typed, and Tab completion ignores case. The history keeps 100,000 commands in
+`~/.local/state/bash/history`, and each command is saved as soon as it runs, so new terminals see it.
+
+## Testing
 
 [CI](.github/workflows/ci.yml) runs on every push to `main`, every pull request and every Monday, in an Ubuntu 26.04
 container:
 
-- **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
-  GitHub CLI and Chrome repositories and their signing keys, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm,
-  Flathub and Homebrew downloads (the releases the installer would pick, at least 7 days old), and a matching `.deb`
-  with a SHA-256 digest in the latest release of each app in `github-debs.sh`. IDplug Classic is built for Ubuntu 24.04,
-  so its `.deb` is also checked to install on 26.04. The weekly run catches a source that broke while nothing in this
-  repository changed. It also checks that those sources still offer every package in `packages/`, so a renamed or
-  removed package shows up here rather than during an install. Run the same check locally with `make sources`.
+- **sources** (`make sources`): every PPA, repository, download and listed package can still be found. The weekly run
+  catches a source that broke while nothing here changed.
+- **packages**: apt can install everything in `apt.txt` together from those sources (`packages.sh --simulate`).
+- **lint** (`make lint`): shellcheck on every script.
+- **link**: the dotfiles link into a fresh home directory and unlink again, and the shells they set up start.
+- **test** (`make test`): the tests in [`tests/`](tests), each in a private home directory and settings database.
+- **secrets**: gitleaks over the whole history, behind the pre-commit hook.
 
-- **packages**: adds the PPAs and repositories as the installer does, then has apt work out an installation of
-  every package in `apt.txt` together, without installing them (`scripts/packages.sh --simulate`). This catches what
-  the sources check cannot: a package that is still offered but no longer installs, because a dependency was renamed
-  or removed, or because it conflicts with another package on the list.
-- **lint**: runs shellcheck on the scripts and `.profile`. The files in `.bashrc.d/` that `.profile` also loads are
-  checked as `sh`, since a login shell that is not bash may read them. Run the same check locally with `make lint`.
-- **link**: links the dotfiles into a fresh home directory, checks that the existing files were backed up, that a
-  second run changes nothing and that a link to a file removed from the repository is reported and removed, starts an
-  interactive shell with the linked `.bashrc`, checks that new terminals keep a history longer than Ubuntu's 2,000
-  lines, starts login shells with the linked `.profile`, then unlinks everything again.
-- **test**: runs the tests in [`tests/`](tests), each in an empty home directory of its own, so they never read or
-  change your settings. Run them locally with `make test`; the pre-push hook does too.
-  - `gnome.sh` loads the saved GNOME settings into an empty settings database on a private D-Bus session, and checks
-    that a key no longer saved is reset, runtime state is kept, the primary monitor's ID is filled in (or the settings
-    that need it are skipped when there is no monitor to ask about), that saving them again gives back the saved
-    files, and that a setting changed afterwards is reported.
-  - `app-settings.sh` loads the app settings with stand-ins for VS Code, Helm and `xdg-mime`, and checks that replaced files
-    are backed up, a second load replaces nothing, only missing extensions are installed, and that changes are
-    reported and then saved without the home directory in them.
-  - `drift.sh` runs the drift report against a made-up machine, and checks that it lists only what was installed by
-    hand: not what is in `packages/`, what Ubuntu installed itself or what `ignore.txt` covers.
-- **secrets**: scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks), as a second line
-  behind the pre-commit hook, which checks each commit before it can be pushed.
-
-Each job has a time limit, so a server that stops answering cannot hold up a run. GitHub turns off a public
-repository's schedule after 60 days without activity, so the weekly run also enables the workflow again, which resets
-that timer.
-
-[`.editorconfig`](.editorconfig) keeps editors in line with the repository's style (LF, 2-space indents, 120 columns
-for Markdown, no re-wrapping of Markdown paragraphs in JetBrains IDEs).
-
-[Dependabot](.github/dependabot.yml) opens a pull request each month when the GitHub Actions used here have new
-versions.
+The pre-push hook runs `make lint test` too, since `main` is pushed to directly. Dependabot keeps the pinned GitHub
+Actions up to date.
 
 ## Post-Install
 
@@ -388,8 +241,8 @@ sudo flatpak repair
 ### The Browser Does Not See the Electronic ID Card
 
 IDplug Manager shows the card's certificates, but the browsers only see them through the module that
-`scripts/components/idplug.sh` adds for them; `make doctor` checks it for both. For Chrome, with the card in the reader, check
-that the module is in `~/.pki/nssdb` and lists the card's tokens:
+[`scripts/components/idplug.sh`](scripts/components/idplug.sh) adds for them; `make doctor` checks it for both. For
+Chrome, with the card in the reader, check that the module is in `~/.pki/nssdb` and lists the card's tokens:
 
 ```bash
 modutil -dbdir sql:$HOME/.pki/nssdb -list "IDEMIA IDPlug"
@@ -399,7 +252,8 @@ In Firefox, open **Settings > Privacy & Security > Security Devices**: "IDEMIA I
 card's tokens under it. Because of the policy that adds it, Firefox shows "Your browser is being managed by your
 organization" in its settings.
 
-If either is missing, run `bash scripts/components/idplug.sh install`. Then quit the browser completely and start it again.
+If either is missing, run `bash scripts/components/idplug.sh install`. Then quit the browser completely and start it
+again.
 
 When a site asks for a certificate, choose the one ending in "(Autentificare)", from the **PKI Application** token,
 and enter the card's 4-digit User PIN; the other two tokens are for signing. The card locks after a few wrong PINs.
