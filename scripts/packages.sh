@@ -93,11 +93,6 @@ upgrade() {
 }
 
 apt_packages() {
-  # The Craft apps replace LibreOffice, which comes with Ubuntu. Purging these two removes every LibreOffice package,
-  # since they all depend on them; `apt-get autoremove` (scripts/cleanup.sh) then removes the libraries they pulled in.
-  if deb_installed libreoffice-common; then
-    apt_get purge -y libreoffice-common libreoffice-core
-  fi
   local packages
   mapfile -t packages < <(read_list apt.txt)
   # One apt-get call is much faster, but fails as a whole if a single package cannot be installed. Then install them

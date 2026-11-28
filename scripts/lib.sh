@@ -285,8 +285,8 @@ url_exists() { url_found --range 0-0 "$1"; }
 # run in this order, which is also the order they are installed in, so each comes after the ones it needs.
 COMPONENTS_DIR="$ROOT_DIR/scripts/components"
 COMPONENTS=(
-  rust node docker-desktop docker-credentials kubernetes homebrew jetbrains-toolbox clamav udev github-debs idplug
-  firmware pipx
+  rust node docker-desktop docker-credentials kubernetes homebrew jetbrains-toolbox clamav udev openlogi github-debs
+  wayland-scroll-factor craft-apps idplug firmware pipx
 )
 COMPONENT_ACTIONS=(install update sources doctor tracked)
 

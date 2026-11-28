@@ -12,7 +12,7 @@ help: ## List the available targets
 install: ## Set up everything: packages, links, GNOME extensions and settings
 	bash scripts/install.sh
 
-update: ## Update packages, firmware, Docker Desktop, GitHub-release apps, IDplug, Homebrew, pipx, extensions, Rust, Node
+update: ## Update everything the installer set up, then run doctor
 	bash scripts/update.sh
 
 packages: ## Add the repositories and install the packages

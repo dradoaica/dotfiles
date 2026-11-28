@@ -3,7 +3,8 @@
 # their newest release that is at least RELEASE_MIN_AGE_DAYS old (see lib.sh). Uses the GitHub API directly, so it
 # works before `gh auth login`. Each download is checked against the SHA-256 digest GitHub publishes for it, and an
 # asset without one is not installed. That digest comes from the same place as the file, so it does not help when a
-# maintainer's account is taken over and a release is replaced; the wait is for that.
+# maintainer's account is taken over and a release is replaced; the wait is for that. What an app needs besides being
+# installed is in a component of its own, such as openlogi.sh.
 # shellcheck disable=SC2034 # read by component_main in lib.sh
 TITLE="Apps from GitHub releases"
 
@@ -53,14 +54,7 @@ install_all() {
 }
 
 on_install() {
-  # OpenLogi replaces Solaar, and does not work while Solaar is installed: both drive the same Logitech devices
-  if deb_installed solaar; then
-    apt_get purge -y solaar
-  fi
   install_all
-  # Slow down touchpad scrolling on Wayland; takes effect after the next login
-  wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30 --pinch-zoom 1.00 --pinch-rotate 1.00
-  wsf enable
 }
 
 on_update() {
@@ -74,15 +68,11 @@ on_sources() {
   done < <(read_list github-debs.txt)
 }
 
-wsf_enabled() { wsf status | grep -q '^enabled: yes'; }
-
 on_doctor() {
   local repo package
   while read -r repo package _; do
     check "$package from $repo is installed" deb_installed "$package"
   done < <(read_list github-debs.txt)
-  check "Solaar is not installed (OpenLogi does not work with it)" deb_not_installed solaar
-  check "Wayland Scroll Factor is enabled" wsf_enabled
 }
 
 on_tracked() {

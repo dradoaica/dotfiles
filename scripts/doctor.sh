@@ -53,7 +53,6 @@ check "every package in packages/apt.txt is installed" all_installed apt.txt apt
 check "every snap in packages/snap.txt is installed" all_installed snap.txt snaps_installed
 check "every app in packages/flatpak.txt is installed" all_installed flatpak.txt flatpaks_installed
 check "the PPAs can only replace the packages listed for them in packages/ppas.txt" ppas_pinned
-check "LibreOffice is not installed (the Craft apps replace it)" deb_not_installed libreoffice-common
 
 run_components doctor
 
