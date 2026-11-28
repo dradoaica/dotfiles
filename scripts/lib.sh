@@ -3,6 +3,8 @@
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# --- Lists in packages/ ---------------------------------------------------------------------------------------------
+
 # Installed before anything else: what packages.sh needs to add the other sources
 # shellcheck disable=SC2034 # used by the scripts that source this file
 PREREQUISITES=(curl flatpak jq software-properties-common stow wget)
@@ -17,14 +19,26 @@ read_list() {
   list_entries "$ROOT_DIR/packages/$1"
 }
 
-# replace <text> <replacement>: copy stdin to stdout with every <text> replaced, both taken literally
-replace() {
-  local text
-  # The x keeps the newlines at the end, which $(...) would drop
-  text="$(cat; printf x)"
-  text="${text%x}"
-  printf '%s' "${text//"$1"/"$2"}"
+# --- APT ------------------------------------------------------------------------------------------------------------
+
+# apt_get <arguments...>: run apt-get as root without stopping for a question. sudo leaves DEBIAN_FRONTEND out of the
+# environment it passes on, so it is given on the command line. dpkg still asks what to do with a config file that was
+# changed here when the package brings a new one, even then: keep the changed file, and take the new one only when the
+# file was not changed.
+apt_get() {
+  sudo DEBIAN_FRONTEND=noninteractive apt-get \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"
 }
+
+# The upgrade that packages.sh and update.sh both run
+upgrade_apt() {
+  apt_get update
+  apt_get upgrade -y --with-new-pkgs
+}
+
+# deb_installed <package>: succeed when an APT package is installed
+deb_installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
+deb_not_installed() { ! deb_installed "$1"; }
 
 # Print the APT preferences that keep each PPA in packages/ppas.txt to its own packages. Everything a PPA offers
 # gets priority 100, below the 500 of Ubuntu's archive: it can still be installed when nothing else provides it,
@@ -40,6 +54,25 @@ ppa_preferences() {
     printf '\nPackage: *\nPin: release o=%s\nPin-Priority: 100\n' "$origin"
     [ -z "$packages" ] || printf '\nPackage: %s\nPin: release o=%s\nPin-Priority: 500\n' "$packages" "$origin"
   done < <(read_list ppas.txt)
+}
+
+# --- Installing and downloading -------------------------------------------------------------------------------------
+
+# install_each <list in packages/> <command...>: run the command once for each entry of the list, with the words of
+# the entry after it (an entry can carry options, such as `code --classic`). Carries on past an entry that fails, and
+# fails at the end, naming them.
+install_each() {
+  local list="$1" entry words missing=()
+  shift
+  while read -r entry; do
+    read -r -a words <<< "$entry"
+    # From /dev/null, so the command cannot read the rest of the list
+    "$@" "${words[@]}" < /dev/null || missing+=("$entry")
+  done < <(read_list "$list")
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo "Could not install: ${missing[*]}" >&2
+    return 1
+  fi
 }
 
 # Put Homebrew on PATH for this script; fails if it is not installed
@@ -98,6 +131,90 @@ github_commit() {
   github_api "repos/$1/commits?path=$2&until=$until&per_page=1" | jq -r '.[0].sha // empty'
 }
 
+# download_verified <URL> <SHA-256> <file>: download a file and check it against its SHA-256; a file that does not
+# match is removed
+download_verified() {
+  curl -fL --retry 2 "$1" -o "$3" || return 1
+  echo "$2  $3" | sha256sum --check --quiet || { rm -f "$3"; return 1; }
+}
+
+# install_deb <URL> <SHA-256>: download a .deb, check it against its SHA-256 and install it with its dependencies
+install_deb() {
+  local dir status=0
+  dir="$(mktemp -d)"
+  # apt runs as _apt and must be able to read the download
+  chmod 755 "$dir"
+  if download_verified "$1" "$2" "$dir/package.deb"; then
+    chmod 644 "$dir/package.deb"
+    apt_get install -y "$dir/package.deb" || status=$?
+  else
+    status=1
+  fi
+  rm -rf "$dir"
+  return "$status"
+}
+
+# --- Checks ---------------------------------------------------------------------------------------------------------
+
+failed_checks=0
+# check <description> <command...>: run the command quietly and print "ok" or "FAIL" for it, with the command's
+# output indented below a failure so it says why. Count failures in failed_checks instead of stopping, so every
+# check runs.
+check() {
+  local description="$1" output
+  shift
+  if output="$("$@" 2>&1)"; then
+    echo "ok    $description"
+  else
+    echo "FAIL  $description"
+    [ -z "$output" ] || echo "        ${output//$'\n'/$'\n'        }"
+    failed_checks=$((failed_checks + 1))
+  fi
+}
+
+# all_installed <list in packages/> <command printing what is installed>: every entry of the list must be among
+# them. The first word of an entry is its name, without the options before it or the tap it comes from.
+all_installed() {
+  local list="$1" installed_names name status=0
+  shift
+  installed_names="$("$@")" || return 1
+  while read -r name; do
+    grep -qxF "$name" <<< "$installed_names" || { echo "not installed: $name" >&2; status=1; }
+  done < <(read_list "$list" | sed -E 's/^--[a-z]+[[:space:]]+//' | awk '{ print $1 }' | sed 's|.*/||')
+  return "$status"
+}
+
+# curl retries a rate limit (HTTP 429), a server error and a connection that fails before the server answers, waiting
+# longer each time (1, 2, 4... seconds, or as long as the server asks). The Snap Store has both rate-limited the source
+# checks and closed the TLS handshake when many of them run in a row. A server that stops answering fails the check
+# instead of holding up the others.
+CURL_RETRY=(--retry 5 --retry-all-errors --retry-max-time 120 --max-time 60)
+
+# url_found <curl arguments...>: succeed when the server answers with a 2xx status. Not with --fail, which would make
+# --retry-all-errors retry a 404 too, though that answer means the source is gone.
+url_found() {
+  local status
+  status="$(curl -sSL "${CURL_RETRY[@]}" -o /dev/null -w '%{http_code}' "$@")" || return
+  if [[ "$status" != 2?? ]]; then
+    echo "The server answered with HTTP $status" >&2
+    return 1
+  fi
+}
+
+# url_exists <URL>: url_found, fetching only the first byte, so large files are not downloaded
+url_exists() { url_found --range 0-0 "$1"; }
+
+# --- Saved settings -------------------------------------------------------------------------------------------------
+
+# replace <text> <replacement>: copy stdin to stdout with every <text> replaced, both taken literally
+replace() {
+  local text
+  # The x keeps the newlines at the end, which $(...) would drop
+  text="$(cat; printf x)"
+  text="${text%x}"
+  printf '%s' "${text//"$1"/"$2"}"
+}
+
 # differences <saved folder> <folder>: print what differs between the saved files and the same files as they are
 # on this machine now, as a diff without the lines around each change; fails when there are differences
 differences() {
@@ -117,36 +234,7 @@ differences() {
   return 1
 }
 
-failed_checks=0
-# check <description> <command...>: run the command quietly and print "ok" or "FAIL" for it, with the command's
-# output indented below a failure so it says why. Count failures in failed_checks instead of stopping, so every
-# check runs.
-check() {
-  local description="$1" output
-  shift
-  if output="$("$@" 2>&1)"; then
-    echo "ok    $description"
-  else
-    echo "FAIL  $description"
-    [ -z "$output" ] || echo "        ${output//$'\n'/$'\n'        }"
-    failed_checks=$((failed_checks + 1))
-  fi
-}
-
-# apt_get <arguments...>: run apt-get as root without stopping for a question. sudo leaves DEBIAN_FRONTEND out of the
-# environment it passes on, so it is given on the command line. dpkg still asks what to do with a config file that was
-# changed here when the package brings a new one, even then: keep the changed file, and take the new one only when the
-# file was not changed.
-apt_get() {
-  sudo DEBIAN_FRONTEND=noninteractive apt-get \
-    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"
-}
-
-# The upgrade that packages.sh and update.sh both run
-upgrade_apt() {
-  apt_get update
-  apt_get upgrade -y --with-new-pkgs
-}
+# --- Steps and logs -------------------------------------------------------------------------------------------------
 
 failed_steps=()
 # step <name> <function>: run a step in a subshell with `set -e` in force (it would be ignored if the step
@@ -195,81 +283,7 @@ finish() {
   [ "$log_started" = false ] || echo "The whole output is saved in $DOTFILES_LOG"
 }
 
-# deb_installed <package>: succeed when an APT package is installed
-deb_installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
-deb_not_installed() { ! deb_installed "$1"; }
-
-# all_installed <list in packages/> <command printing what is installed>: every entry of the list must be among
-# them. The first word of an entry is its name, without the options before it or the tap it comes from.
-all_installed() {
-  local list="$1" installed_names name missing=0
-  shift
-  installed_names="$("$@")" || return 1
-  while read -r name; do
-    grep -qxF "$name" <<< "$installed_names" || { echo "not installed: $name" >&2; missing=1; }
-  done < <(read_list "$list" | sed -E 's/^--[a-z]+[[:space:]]+//' | awk '{ print $1 }' | sed 's|.*/||')
-  return "$missing"
-}
-
-# install_each <list in packages/> <command...>: run the command once for each entry of the list, with the words of
-# the entry after it (an entry can carry options, such as `code --classic`). Carries on past an entry that fails, and
-# fails at the end, naming them.
-install_each() {
-  local list="$1" entry words missing=()
-  shift
-  while read -r entry; do
-    read -r -a words <<< "$entry"
-    # From /dev/null, so the command cannot read the rest of the list
-    "$@" "${words[@]}" < /dev/null || missing+=("$entry")
-  done < <(read_list "$list")
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "Could not install: ${missing[*]}" >&2
-    return 1
-  fi
-}
-
-# download_verified <URL> <SHA-256> <file>: download a file and check it against its SHA-256; a file that does not
-# match is removed
-download_verified() {
-  curl -fL --retry 2 "$1" -o "$3" || return 1
-  echo "$2  $3" | sha256sum --check --quiet || { rm -f "$3"; return 1; }
-}
-
-# install_deb <URL> <SHA-256>: download a .deb, check it against its SHA-256 and install it with its dependencies
-install_deb() {
-  local dir status=0
-  dir="$(mktemp -d)"
-  # apt runs as _apt and must be able to read the download
-  chmod 755 "$dir"
-  if download_verified "$1" "$2" "$dir/package.deb"; then
-    chmod 644 "$dir/package.deb"
-    apt_get install -y "$dir/package.deb" || status=$?
-  else
-    status=1
-  fi
-  rm -rf "$dir"
-  return "$status"
-}
-
-# curl retries a rate limit (HTTP 429), a server error and a connection that fails before the server answers, waiting
-# longer each time (1, 2, 4... seconds, or as long as the server asks). The Snap Store has both rate-limited the source
-# checks and closed the TLS handshake when many of them run in a row. A server that stops answering fails the check
-# instead of holding up the others.
-CURL_RETRY=(--retry 5 --retry-all-errors --retry-max-time 120 --max-time 60)
-
-# url_found <curl arguments...>: succeed when the server answers with a 2xx status. Not with --fail, which would make
-# --retry-all-errors retry a 404 too, though that answer means the source is gone.
-url_found() {
-  local status
-  status="$(curl -sSL "${CURL_RETRY[@]}" -o /dev/null -w '%{http_code}' "$@")" || return
-  if [[ "$status" != 2?? ]]; then
-    echo "The server answered with HTTP $status" >&2
-    return 1
-  fi
-}
-
-# url_exists <URL>: url_found, fetching only the first byte, so large files are not downloaded
-url_exists() { url_found --range 0-0 "$1"; }
+# --- Components -----------------------------------------------------------------------------------------------------
 
 # Each tool the installer sets up besides the packages in packages/ (Docker Desktop, Node, IDplug...) is one script
 # in scripts/components/, which does everything for it. It sets TITLE, the name its output is headed with, and defines
