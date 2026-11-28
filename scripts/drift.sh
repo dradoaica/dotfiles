@@ -14,9 +14,7 @@ source "$SCRIPT_DIR/lib.sh"
 tracked() {
   read_list apt.txt | sed 's/^/apt:/'
   printf 'apt:%s\n' "${PREREQUISITES[@]}"
-  read_list snap.txt | awk '{ print "snap:" $1 }'
-  read_list flatpak.txt | sed 's/^/flatpak:/'
-  # What the tools in scripts/components/ install, such as Docker Desktop and the formulae in brew.txt
+  # What the components install: the snaps, Flatpak apps and formulae in their lists, Docker Desktop...
   run_components tracked
 }
 

@@ -30,8 +30,6 @@ ppas_pinned() {
     || { echo "write them with: make packages" >&2; return 1; }
 }
 apt_installed() { dpkg-query -W -f='${db:Status-Status} ${Package}\n' | awk '$1 == "installed" { print $2 }'; }
-snaps_installed() { snap list | awk 'NR > 1 { print $1 }'; }
-flatpaks_installed() { flatpak list --app --columns=application; }
 extensions_enabled() {
   local enabled uuid
   enabled="$(gnome-extensions list --enabled)"
@@ -50,8 +48,6 @@ check "commits to this repository are checked for secrets first (gitleaks pre-co
 
 echo "== Packages"
 check "every package in packages/apt.txt is installed" all_installed apt.txt apt_installed
-check "every snap in packages/snap.txt is installed" all_installed snap.txt snaps_installed
-check "every app in packages/flatpak.txt is installed" all_installed flatpak.txt flatpaks_installed
 check "the PPAs can only replace the packages listed for them in packages/ppas.txt" ppas_pinned
 
 run_components doctor

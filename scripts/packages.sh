@@ -1,7 +1,7 @@
 #!/bin/bash
-# Add the APT, Snap and Flatpak sources, install the packages listed in packages/, then set up each tool in
-# scripts/components/ (see COMPONENTS in lib.sh). Every step runs even if an earlier one failed; the failed steps are
-# listed at the end, so one broken source does not stop the rest of a fresh install.
+# Add the APT sources and install the APT packages listed in packages/, then set up everything in scripts/components/
+# (see COMPONENTS in lib.sh), from the snaps and Flatpak apps to Docker Desktop. Every step runs even if an earlier one
+# failed; the failed steps are listed at the end, so one broken source does not stop the rest of a fresh install.
 # Usage: packages.sh [--simulate]
 #   --simulate  only add the APT sources and check that apt can install every package in packages/apt.txt
 #               together, without installing them. CI runs this in a container of the release.
@@ -81,17 +81,6 @@ apt_sources() {
   done
 }
 
-sources() {
-  apt_sources
-  sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-}
-
-upgrade() {
-  upgrade_apt
-  upgrade_snaps
-  upgrade_flatpaks
-}
-
 apt_packages() {
   local packages
   mapfile -t packages < <(read_list apt.txt)
@@ -114,9 +103,6 @@ simulate_apt_packages() {
   echo "apt can install the ${#packages[@]} packages in apt.txt together"
 }
 
-snap_packages() { install_each snap.txt sudo snap install; }
-flatpak_packages() { install_each flatpak.txt sudo flatpak install -y flathub; }
-
 if [ "$simulate" = true ]; then
   step Prerequisites prerequisites
   step "APT sources" apt_sources
@@ -127,11 +113,9 @@ fi
 
 step Prerequisites prerequisites
 step Migrations bash "$SCRIPT_DIR/migrations.sh"
-step Sources sources
-step Upgrade upgrade
+step "APT sources" apt_sources
+step "APT upgrade" upgrade_apt
 step "APT packages" apt_packages
-step Snaps snap_packages
-step Flatpak flatpak_packages
 run_components install
 step Cleanup bash "$SCRIPT_DIR/cleanup.sh"
 

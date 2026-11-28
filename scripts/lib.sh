@@ -142,13 +142,11 @@ apt_get() {
     -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"
 }
 
-# The upgrades that packages.sh and update.sh both run
+# The upgrade that packages.sh and update.sh both run
 upgrade_apt() {
   apt_get update
   apt_get upgrade -y --with-new-pkgs
 }
-upgrade_snaps() { sudo snap refresh; }
-upgrade_flatpaks() { sudo flatpak update -y; }
 
 failed_steps=()
 # step <name> <function>: run a step in a subshell with `set -e` in force (it would be ignored if the step
@@ -285,8 +283,12 @@ url_exists() { url_found --range 0-0 "$1"; }
 # run in this order, which is also the order they are installed in, so each comes after the ones it needs.
 COMPONENTS_DIR="$ROOT_DIR/scripts/components"
 COMPONENTS=(
-  rust node docker-desktop docker-credentials kubernetes homebrew jetbrains-toolbox clamav udev openlogi github-debs
-  wayland-scroll-factor craft-apps idplug firmware pipx
+  snaps flatpaks
+  rust node homebrew jetbrains-toolbox
+  docker-desktop docker-credentials kubernetes
+  clamav udev
+  openlogi github-debs wayland-scroll-factor craft-apps idplug
+  firmware pipx
 )
 COMPONENT_ACTIONS=(install update sources doctor tracked)
 

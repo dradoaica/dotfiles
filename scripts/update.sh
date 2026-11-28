@@ -1,7 +1,7 @@
 #!/bin/bash
-# Update everything the installer set up: the APT, Snap and Flatpak packages, each tool in scripts/components/ (see
-# COMPONENTS in lib.sh) and the GNOME extensions. It ends with the checks of doctor.sh. Every step runs even if an
-# earlier one failed; the failed steps are listed at the end.
+# Update everything the installer set up: the APT packages, everything in scripts/components/ (see COMPONENTS in
+# lib.sh), from the snaps to Node, and the GNOME extensions. It ends with the checks of doctor.sh. Every step runs even
+# if an earlier one failed; the failed steps are listed at the end.
 
 set -euo pipefail
 
@@ -11,8 +11,6 @@ source "$SCRIPT_DIR/lib.sh"
 start_log update
 
 step APT upgrade_apt
-step Snap upgrade_snaps
-step Flatpak upgrade_flatpaks
 run_components update
 step "GNOME extensions" bash "$SCRIPT_DIR/gnome.sh" update
 step Cleanup bash "$SCRIPT_DIR/cleanup.sh"

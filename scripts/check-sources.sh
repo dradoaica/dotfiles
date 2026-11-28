@@ -1,7 +1,8 @@
 #!/bin/bash
-# Check that every outside source the installer downloads from still works for this Ubuntu release: the PPAs, APT
-# repositories and Flathub, that they still offer every package in packages/, and what each tool in
-# scripts/components/ downloads (their on_sources). Installs nothing, and needs no root. CI runs it every week.
+# Check that every outside source the installer downloads from still works for this Ubuntu release: the PPAs and APT
+# repositories, that they still offer every package in packages/apt.txt, and what everything in scripts/components/
+# downloads (their on_sources), from the snaps and Flathub to Docker Desktop. Installs nothing, and needs no root. CI
+# runs it every week.
 
 # No `set -e`: a source that fails must not stop the checks after it
 set -uo pipefail
@@ -27,8 +28,6 @@ add_apt_index() {
 }
 
 in_apt_index() { grep -qxF "$1" "$apt_index"; }
-snap_exists() { url_found -H 'Snap-Device-Series: 16' "https://api.snapcraft.io/v2/snaps/info/$1"; }
-flatpak_exists() { url_found "https://flathub.org/api/v2/appstream/$1"; }
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
 # The lists packages.sh adds the sources from
@@ -40,14 +39,12 @@ for ppa in "${ppas[@]}"; do
   check "ppa:$ppa" url_exists "https://ppa.launchpadcontent.net/$owner/$name/ubuntu/dists/$VERSION_CODENAME/Release"
 done
 
-echo "== APT repositories and Flathub"
+echo "== APT repositories"
 for repository in "${repositories[@]}"; do
   read -r name key_url _ uri suite _ <<< "$repository"
   check "$name ($suite)" url_exists "${uri%/}/dists/$suite/Release"
   check "$name signing key" url_exists "$key_url"
 done
-
-check "Flathub repository" url_exists https://flathub.org/repo/flathub.flatpakrepo
 
 echo "== Package indexes"
 for component in main restricted universe multiverse; do
@@ -74,18 +71,6 @@ echo "== APT packages"
 mapfile -t apt_packages < <(read_list apt.txt)
 for package in "${PREREQUISITES[@]}" "${apt_packages[@]}"; do
   check "$package" in_apt_index "$package"
-done
-
-echo "== Snaps"
-mapfile -t snaps < <(read_list snap.txt | awk '{ print $1 }')
-for snap in "${snaps[@]}"; do
-  check "$snap" snap_exists "$snap"
-done
-
-echo "== Flatpak apps"
-mapfile -t flatpaks < <(read_list flatpak.txt)
-for app in "${flatpaks[@]}"; do
-  check "$app" flatpak_exists "$app"
 done
 
 run_components sources
