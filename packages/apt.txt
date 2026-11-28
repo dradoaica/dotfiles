@@ -53,6 +53,7 @@ ruby-full
 docker-ce-cli
 
 # Applications
+brasero
 clamav
 clamav-daemon
 clamtk

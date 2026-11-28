@@ -116,7 +116,7 @@ plus the APT sources they come from in [`ppas.txt`](packages/ppas.txt) and
   nvm); VS Code, JetBrains Toolbox, GitKraken, the GitHub CLI and Claude Code.
 - **Containers and Kubernetes**: Docker Desktop (with its own engine), MicroK8s (stopped until you start it),
   Multipass, kubectl, Helm and K9s.
-- **Apps**: browsers, media and screenshot tools, a BitTorrent client, backups (Déjà Dup),
+- **Apps**: browsers, media and screenshot tools, CD/DVD burning (Brasero), a BitTorrent client, backups (Déjà Dup),
   antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher),
   [ArtCraft Launcher](https://github.com/storytold/craft-launcher) (which installs and updates the Craft image, video,
   vector, document and CAD editors) and games.
