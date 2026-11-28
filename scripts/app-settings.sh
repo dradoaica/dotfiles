@@ -1,10 +1,10 @@
 #!/bin/bash
-# Save or restore app settings that cannot be symlinked: the apps rewrite the files, or the
-# files hold machine-specific names. They are kept in apps/.
-# Usage: apps.sh dump   save the OpenLogi config, Claude Code settings, default apps, VS Code extensions and Helm
-#                       repositories
-#        apps.sh load   apply them to this machine
-#        apps.sh check  report the ones that differ from the saved ones, changing nothing
+# Save or restore app settings that cannot be symlinked: the apps rewrite the files, or the files hold
+# machine-specific names. They are kept in app-settings/.
+# Usage: app-settings.sh dump   save the OpenLogi config, Claude Code settings, default apps, VS Code extensions and
+#                               Helm repositories
+#        app-settings.sh load   apply them to this machine
+#        app-settings.sh check  report the ones that differ from the saved ones, changing nothing
 
 set -euo pipefail
 
@@ -24,16 +24,16 @@ HOME_PLACEHOLDER="{home}"
 # here only when what it holds is safe to publish.
 CLAUDE_SAVED_KEYS='["model", "modelSettings", "theme", "enabledPlugins", "extraKnownMarketplaces", "autoMode"]'
 
-# use_apps_dir <folder>: save to and load from that folder
-use_apps_dir() {
-  APPS_DIR="$1"
-  SAVED_OPENLOGI_CONFIG="$APPS_DIR/openlogi/config.toml"
-  SAVED_CLAUDE_SETTINGS="$APPS_DIR/claude/settings.json"
-  DEFAULT_APPS_FILE="$APPS_DIR/default-apps.txt"
-  VSCODE_EXTENSIONS_FILE="$APPS_DIR/vscode-extensions.txt"
-  HELM_REPOS_FILE="$APPS_DIR/helm-repositories.txt"
+# use_saved_dir <folder>: save to and load from that folder
+use_saved_dir() {
+  SAVED_DIR="$1"
+  SAVED_OPENLOGI_CONFIG="$SAVED_DIR/openlogi/config.toml"
+  SAVED_CLAUDE_SETTINGS="$SAVED_DIR/claude/settings.json"
+  DEFAULT_APPS_FILE="$SAVED_DIR/default-apps.txt"
+  VSCODE_EXTENSIONS_FILE="$SAVED_DIR/vscode-extensions.txt"
+  HELM_REPOS_FILE="$SAVED_DIR/helm-repositories.txt"
 }
-use_apps_dir "$ROOT_DIR/apps"
+use_saved_dir "$ROOT_DIR/app-settings"
 
 # Where desktop entries are installed (user, system, snap, Flatpak)
 DESKTOP_DIRS=(
@@ -74,7 +74,7 @@ restore_file() {
 }
 
 dump() {
-  mkdir -p "$APPS_DIR"
+  mkdir -p "$SAVED_DIR"
 
   save_file "$OPENLOGI_CONFIG" "$SAVED_OPENLOGI_CONFIG" "OpenLogi config"
   if [ -f "$CLAUDE_SETTINGS" ]; then
@@ -86,7 +86,8 @@ dump() {
     replace "$HOME" "$HOME_PLACEHOLDER" <<< "$settings" > "$SAVED_CLAUDE_SETTINGS"
     echo "Saved the Claude Code settings"
     if [ -n "$left_out" ]; then
-      echo "Left these Claude Code settings out, as they are not in CLAUDE_SAVED_KEYS in scripts/apps.sh: $left_out" >&2
+      echo "Left these Claude Code settings out, as they are not in CLAUDE_SAVED_KEYS in" \
+        "scripts/app-settings.sh: $left_out" >&2
     fi
   fi
 
@@ -184,12 +185,12 @@ load() {
 
 # Save the settings of this machine to a temporary folder and compare them with the saved ones
 check_saved() {
-  local saved_dir="$APPS_DIR"
+  local saved_dir="$SAVED_DIR"
   CHECK_DIR="$(mktemp -d)"
   trap 'rm -rf "$CHECK_DIR"' EXIT
   # Start from the saved files: dump keeps the ones whose app is not installed here
   cp -r "$saved_dir/." "$CHECK_DIR"
-  use_apps_dir "$CHECK_DIR"
+  use_saved_dir "$CHECK_DIR"
   dump > /dev/null
   differences "$saved_dir" "$CHECK_DIR"
   echo "The app settings are the saved ones"

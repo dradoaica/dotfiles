@@ -15,6 +15,6 @@ step Dotfiles bash "$SCRIPT_DIR/link.sh"
 step "Git hooks" git -C "$ROOT_DIR" config core.hooksPath .githooks
 step "GNOME extensions" bash "$SCRIPT_DIR/gnome.sh" extensions
 step "GNOME settings" bash "$SCRIPT_DIR/gnome.sh" load
-step "App settings" bash "$SCRIPT_DIR/apps.sh" load
+step "App settings" bash "$SCRIPT_DIR/app-settings.sh" load
 
 finish "Done."

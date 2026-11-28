@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test `apps.sh load`, `dump` and `check` in an empty home directory, on a copy of the repository, with stand-ins
+# Test `app-settings.sh load`, `dump` and `check` in an empty home directory, on a copy of the repository, with stand-ins
 # for VS Code, Helm, Homebrew and xdg-mime that only record how they were called. Nothing on the machine it runs on
 # is read or changed. CI runs it, and so does `make test`.
 
@@ -11,16 +11,16 @@ source "$ROOT_DIR/tests/lib.sh"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_DIR/home" "$TEST_DIR/repo" "$TEST_DIR/bin"
-cp -r "$ROOT_DIR/scripts" "$ROOT_DIR/apps" "$ROOT_DIR/packages" "$TEST_DIR/repo/"
-APPS_SH="$TEST_DIR/repo/scripts/apps.sh"
-SAVED="$TEST_DIR/repo/apps"
+cp -r "$ROOT_DIR/scripts" "$ROOT_DIR/app-settings" "$ROOT_DIR/packages" "$TEST_DIR/repo/"
+APP_SETTINGS_SH="$TEST_DIR/repo/scripts/app-settings.sh"
+SAVED="$TEST_DIR/repo/app-settings"
 
 export HOME="$TEST_DIR/home" CALLS="$TEST_DIR/calls" STATE="$TEST_DIR/state"
 unset XDG_CONFIG_HOME XDG_DATA_HOME
 mkdir -p "$STATE"
 touch "$CALLS"
 
-# One stand-in under four names: it records its arguments, and answers the two questions apps.sh asks
+# One stand-in under four names: it records its arguments, and answers the two questions app-settings.sh asks
 cat > "$TEST_DIR/bin/stand-in" << 'EOF'
 #!/bin/sh
 name="$(basename "$0")"
@@ -53,7 +53,7 @@ echo '{"old": true, "env": {"API_TOKEN": "not-for-the-repository"}}' > "$HOME/.c
 cp "$HOME/.claude/settings.json" "$TEST_DIR/claude-settings-before"
 
 echo "== Load"
-output="$(bash "$APPS_SH" load)"
+output="$(bash "$APP_SETTINGS_SH" load)"
 cmp -s "$SAVED/openlogi/config.toml" "$HOME/.config/openlogi/config.toml" || fail "the OpenLogi config was not loaded"
 [ "$(stat -c '%a' "$HOME/.config/openlogi/config.toml")" = 600 ] || fail "the OpenLogi config is readable by others"
 ok "the OpenLogi config is loaded, readable only by its owner"
@@ -76,31 +76,31 @@ called "helm repo add --force-update charts https://example.invalid/charts"
 ok "the Helm repository is added"
 
 echo "== Load again"
-output="$(bash "$APPS_SH" load)"
+output="$(bash "$APP_SETTINGS_SH" load)"
 ! grep -qE "Backed up|Loaded the (OpenLogi|Claude)" <<< "$output" || fail "a second load replaced files again"
 ok "a second load replaces nothing"
 
 echo "== Check and dump"
-bash "$APPS_SH" check || fail "the loaded settings differ from the saved ones"
+bash "$APP_SETTINGS_SH" check || fail "the loaded settings differ from the saved ones"
 ok "the loaded settings are the saved ones"
 echo "# changed" >> "$HOME/.config/openlogi/config.toml"
 printf '%s\n' '[Default Applications]' \
   'text/plain=jetbrains-rider-0b1c2d3e-0000-4000-8000-123456789abc.desktop' \
   '[Added Associations]' 'x-test/added=other.desktop' > "$HOME/.config/mimeapps.list"
-if bash "$APPS_SH" check > /dev/null 2>&1; then
+if bash "$APP_SETTINGS_SH" check > /dev/null 2>&1; then
   fail "a changed setting was not reported"
 fi
 ok "a changed setting is reported"
 cp -r "$SAVED" "$TEST_DIR/before"
-bash "$APPS_SH" check > /dev/null 2>&1 || true
+bash "$APP_SETTINGS_SH" check > /dev/null 2>&1 || true
 diff -r "$TEST_DIR/before" "$SAVED" || fail "check changed the saved files"
 ok "check does not change the saved files"
-bash "$APPS_SH" dump > /dev/null
+bash "$APP_SETTINGS_SH" dump > /dev/null
 cmp -s "$HOME/.config/openlogi/config.toml" "$SAVED/openlogi/config.toml" || fail "the OpenLogi config was not saved"
 ! grep -qF "$HOME" "$SAVED/claude/settings.json" || fail "the Claude Code settings were saved with the home directory"
 [ "$(cat "$SAVED/default-apps.txt")" = 'text/plain=jetbrains-rider-*.desktop' ] \
   || fail "the default apps were saved as: $(cat "$SAVED/default-apps.txt")"
 ! grep -qF "not-for-the-repository" "$SAVED/claude/settings.json" || fail "a setting that is not saved was saved"
 ok "dump saves the changes, without the home directory, the IDE's ID or the settings that are not saved"
-bash "$APPS_SH" check > /dev/null || fail "the saved settings differ from the ones just saved"
+bash "$APP_SETTINGS_SH" check > /dev/null || fail "the saved settings differ from the ones just saved"
 ok "nothing differs after a dump"

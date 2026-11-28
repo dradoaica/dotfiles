@@ -63,7 +63,7 @@ check "every extension in gnome/extensions.txt is enabled" extensions_enabled
 # Settings changed on this machine and not saved, which a fresh install would not get
 echo "== Settings"
 check "the GNOME extensions and settings are the ones saved in gnome/" bash "$SCRIPT_DIR/gnome.sh" check
-check "the app settings are the ones saved in apps/" bash "$SCRIPT_DIR/apps.sh" check
+check "the app settings are the ones saved in app-settings/" bash "$SCRIPT_DIR/app-settings.sh" check
 
 if [ "$failed_checks" -gt 0 ]; then
   echo "$failed_checks check(s) failed" >&2

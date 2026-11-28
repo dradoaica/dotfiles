@@ -33,13 +33,13 @@ doctor: ## Check that this machine is still set up the way the installer left it
 extensions: ## Install the GNOME extensions in gnome/extensions.txt
 	bash scripts/gnome.sh extensions
 
-load: ## Apply the GNOME settings and app settings saved in gnome/ and apps/
+load: ## Apply the GNOME settings and app settings saved in gnome/ and app-settings/
 	bash scripts/gnome.sh load
-	bash scripts/apps.sh load
+	bash scripts/app-settings.sh load
 
 dump: ## Save the current GNOME extensions, GNOME settings and app settings into the repository
 	bash scripts/gnome.sh dump
-	bash scripts/apps.sh dump
+	bash scripts/app-settings.sh dump
 	bash scripts/drift.sh
 
 drift: ## Report what is installed but not listed in packages/

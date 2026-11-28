@@ -100,7 +100,7 @@ installed `make`; run `make` on its own to list them.
 | `scripts/link.sh`             | `make link`       | Symlinks the dotfiles in `home/` into your home directory.              |
 | `scripts/gnome.sh extensions` | `make extensions` | Installs the GNOME extensions listed in `gnome/extensions.txt`.         |
 | `scripts/gnome.sh load`       | `make load`       | Applies the GNOME settings saved in `gnome/dconf/`.                     |
-| `scripts/apps.sh load`        | `make load`       | Applies OpenLogi, Claude Code, default apps, VS Code and Helm settings. |
+| `scripts/app-settings.sh load`        | `make load`       | Applies OpenLogi, Claude Code, default apps, VS Code and Helm settings. |
 
 When it finishes, **log out and back in** so the new group membership, fonts and GNOME extensions take effect, then
 work through [Post-Install](#post-install).
@@ -196,12 +196,12 @@ monitor's ID is saved as `{primary-monitor}` and replaced with the ID of the pri
 the settings, so the panel layout follows you to other hardware and the serial number stays out of the repository.
 
 Some app settings cannot be symlinked either, because the app rewrites the file or the file holds names that differ
-per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores them from [`apps/`](apps):
+per machine. [`scripts/app-settings.sh`](scripts/app-settings.sh) saves them to and restores them from [`app-settings/`](app-settings):
 
 - **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
   backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
 - **Claude Code**: the model, theme, plugins and auto mode settings from `~/.claude/settings.json`, since Claude Code
-  rewrites the file. Only the keys listed in `CLAUDE_SAVED_KEYS` in `apps.sh` are saved, so a setting that holds a
+  rewrites the file. Only the keys listed in `CLAUDE_SAVED_KEYS` in `app-settings.sh` are saved, so a setting that holds a
   secret, such as an `env` block with a token, is never copied into this public repository; `make dump` names the
   ones it left out. Loading replaces the saved keys and keeps the others as they are. The home directory in the paths
   the settings hold is saved as `{home}`, and loaded as the home directory of whoever loads them. The loaded settings
@@ -246,7 +246,7 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Save GNOME and app changes** made in Settings, Tweaks or extension preferences, extensions you installed or
   removed, OpenLogi, Claude Code, default apps, VS Code extensions or Helm repositories, with `make dump`, then review
   `git diff` and commit. `make doctor` shows what has changed since the last time, so nothing is left unsaved by
-  accident (`bash scripts/gnome.sh check` and `bash scripts/apps.sh check` show only that).
+  accident (`bash scripts/gnome.sh check` and `bash scripts/app-settings.sh check` show only that).
 - **Check the links** with `make check`. It lists every dotfile that is missing or replaced by a regular file, for
   example after a program overwrote its symlink, and every link left pointing to a file that was removed from the
   repository. `make link` fixes them, removing the stale links.
@@ -308,7 +308,7 @@ container:
     that a key no longer saved is reset, runtime state is kept, the primary monitor's ID is filled in (or the settings
     that need it are skipped when there is no monitor to ask about), that saving them again gives back the saved
     files, and that a setting changed afterwards is reported.
-  - `apps.sh` loads the app settings with stand-ins for VS Code, Helm and `xdg-mime`, and checks that replaced files
+  - `app-settings.sh` loads the app settings with stand-ins for VS Code, Helm and `xdg-mime`, and checks that replaced files
     are backed up, a second load replaces nothing, only missing extensions are installed, and that changes are
     reported and then saved without the home directory in them.
   - `drift.sh` runs the drift report against a made-up machine, and checks that it lists only what was installed by
