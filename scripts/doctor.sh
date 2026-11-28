@@ -14,7 +14,6 @@ load_homebrew || true
 
 installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
 not_installed() { ! installed "$1"; }
-not_snap_installed() { ! snap list "$1" > /dev/null 2>&1; }
 user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2> /dev/null)" != enabled ]; }
 service_disabled() { [ "$(systemctl is-enabled "$1" 2> /dev/null)" != enabled ]; }
 service_running() { systemctl is-active --quiet "$1"; }
@@ -125,9 +124,6 @@ echo "== Docker"
 check "docker uses Docker Desktop (desktop-linux context)" docker_context_is_desktop
 check "Docker Desktop does not start at login" user_service_disabled docker-desktop
 check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
-check "Docker Engine does not start at boot" service_disabled docker.service
-check "Docker Engine does not start when something connects to its socket" service_disabled docker.socket
-check "containerd does not start at boot" service_disabled containerd.service
 check "the GPG key Docker Desktop stores credentials with has a passphrase" docker_key_has_passphrase
 
 echo "== Kubernetes"
@@ -157,9 +153,8 @@ echo "== Apps"
 while read -r repo package _; do
   check "$package from $repo is installed" installed "$package"
 done < <(read_list github-debs.txt)
-check "Solaar is not installed" not_installed solaar
+check "Solaar is not installed (OpenLogi does not work with it)" not_installed solaar
 check "LibreOffice is not installed (the Craft apps replace it)" not_installed libreoffice-common
-check "GIMP is not installed (the Craft apps replace it)" not_snap_installed gimp
 check "Wayland Scroll Factor is enabled" wsf_enabled
 check "IDplug Classic is installed" installed idplugclassic
 check "Chrome can use the electronic ID card (IDEMIA IDPlug module)" chrome_has_idplug

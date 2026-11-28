@@ -56,8 +56,8 @@ aware that it:
   background or start at boot. Run `microk8s start` when you need it, and `microk8s stop` afterwards.
 - Makes Docker Desktop the default for `docker` commands (the `desktop-linux` context), but does not start it at
   login. Start it from the app menu or with `systemctl --user start docker-desktop`; it opens in the tray (the
-  Dashboard does not open). Docker Engine is installed too, but disabled, since Docker Desktop runs its own engine.
-  Start it with `sudo systemctl start docker` if you need it.
+  Dashboard does not open). Docker Engine is not installed, since Docker Desktop runs its own engine; only the
+  Docker CLI comes from Docker's APT repository.
 - Enables `clamav-freshclam`, so ClamAV's virus definitions stay up to date, and disables the ClamAV daemon, which
   keeps about 1 GB of signatures in memory. ClamTk scans on demand without it.
 - Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
@@ -114,8 +114,8 @@ plus the APT sources they come from in [`ppas.txt`](packages/ppas.txt) and
 - **Package managers**: APT, Snap, Flatpak (with Flathub) and Homebrew.
 - **Development**: Python, Go, Rust (via rustup), Java, .NET 10, C/C++ (GCC and Clang), PHP, Ruby and Node.js 24 (via
   nvm); VS Code, JetBrains Toolbox, GitKraken, the GitHub CLI and Claude Code.
-- **Containers and Kubernetes**: Docker Desktop (Docker Engine is installed too, but stays off), MicroK8s (stopped
-  until you start it), Multipass, kubectl, Helm and K9s.
+- **Containers and Kubernetes**: Docker Desktop (with its own engine), MicroK8s (stopped until you start it),
+  Multipass, kubectl, Helm and K9s.
 - **Apps**: browsers, media and screenshot tools, a BitTorrent client, backups (Déjà Dup),
   antivirus (ClamAV), launchers and system tools, [balenaEtcher](https://github.com/balena-io/etcher),
   [ArtCraft Launcher](https://github.com/storytold/craft-launcher) (which installs and updates the Craft image, video,
@@ -247,7 +247,7 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
   `~/.dotfiles-backup/` if you want them back.
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade; every
   `make update` ends with it. It checks,
-  without changing anything, that the dotfiles are linked, Docker uses Docker Desktop and Docker Engine stays off,
+  without changing anything, that the dotfiles are linked, Docker uses Docker Desktop,
   Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
   definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are
   checked for secrets, everything listed in `packages/` is installed, the PPAs are kept to their own packages, the

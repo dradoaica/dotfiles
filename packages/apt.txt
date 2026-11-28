@@ -48,12 +48,9 @@ python3-pip-whl
 python3-venv
 ruby-full
 
-# Docker Engine and its tools (Docker Desktop comes from scripts/docker-desktop.sh)
-containerd.io
-docker-buildx-plugin
-docker-ce
+# The Docker CLI, which Docker Desktop needs (Docker Desktop comes from scripts/docker-desktop.sh, with its own engine,
+# Compose and Buildx)
 docker-ce-cli
-docker-compose-plugin
 
 # Applications
 clamav

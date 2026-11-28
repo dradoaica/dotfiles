@@ -3,7 +3,6 @@
 code --classic
 firefox
 gitkraken --classic
-gnome-chess
 kubectl --classic
 microk8s --classic
 multipass
