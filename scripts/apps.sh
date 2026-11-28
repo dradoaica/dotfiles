@@ -19,6 +19,10 @@ MIMEAPPS="$HOME/.config/mimeapps.list"
 # The Claude Code settings name files in the home directory by their full path. They are saved with this in its
 # place, and loaded with the home directory of the user who loads them.
 HOME_PLACEHOLDER="{home}"
+# The Claude Code settings that are saved. Anything else in the file, such as an env block holding an API token, is
+# left out, and kept as it is on this machine when the saved ones are loaded. The repository is public: add a key
+# here only when what it holds is safe to publish.
+CLAUDE_SAVED_KEYS='["model", "modelSettings", "theme", "enabledPlugins", "extraKnownMarketplaces", "autoMode"]'
 
 # use_apps_dir <folder>: save to and load from that folder
 use_apps_dir() {
@@ -74,9 +78,16 @@ dump() {
 
   save_file "$OPENLOGI_CONFIG" "$SAVED_OPENLOGI_CONFIG" "OpenLogi config"
   if [ -f "$CLAUDE_SETTINGS" ]; then
+    local settings left_out
+    # Read first, so a file that is not valid JSON cannot empty the saved one
+    settings="$(jq --argjson keys "$CLAUDE_SAVED_KEYS" 'with_entries(select(.key | IN($keys[])))' "$CLAUDE_SETTINGS")"
+    left_out="$(jq -r --argjson keys "$CLAUDE_SAVED_KEYS" 'keys_unsorted - $keys | join(", ")' "$CLAUDE_SETTINGS")"
     mkdir -p "$(dirname "$SAVED_CLAUDE_SETTINGS")"
-    replace "$HOME" "$HOME_PLACEHOLDER" < "$CLAUDE_SETTINGS" > "$SAVED_CLAUDE_SETTINGS"
+    replace "$HOME" "$HOME_PLACEHOLDER" <<< "$settings" > "$SAVED_CLAUDE_SETTINGS"
     echo "Saved the Claude Code settings"
+    if [ -n "$left_out" ]; then
+      echo "Left these Claude Code settings out, as they are not in CLAUDE_SAVED_KEYS in scripts/apps.sh: $left_out" >&2
+    fi
   fi
 
   if [ -f "$MIMEAPPS" ]; then
@@ -124,9 +135,13 @@ load() {
   restore_file "$SAVED_OPENLOGI_CONFIG" "$OPENLOGI_CONFIG" "OpenLogi config" \
     "restart OpenLogi if it is running"
   if [ -f "$SAVED_CLAUDE_SETTINGS" ]; then
-    local claude_settings
+    local claude_settings current='{}'
     claude_settings="$(mktemp)"
-    replace "$HOME_PLACEHOLDER" "$HOME" < "$SAVED_CLAUDE_SETTINGS" > "$claude_settings"
+    [ ! -s "$CLAUDE_SETTINGS" ] || current="$(cat "$CLAUDE_SETTINGS")"
+    # The saved settings, after the ones of this machine that are not saved
+    replace "$HOME_PLACEHOLDER" "$HOME" < "$SAVED_CLAUDE_SETTINGS" \
+      | jq --argjson current "$current" --argjson keys "$CLAUDE_SAVED_KEYS" \
+        '($current | with_entries(select(.key | IN($keys[]) | not))) + .' > "$claude_settings"
     restore_file "$claude_settings" "$CLAUDE_SETTINGS" "Claude Code settings" \
       "they apply to new Claude Code sessions"
     rm -f "$claude_settings"

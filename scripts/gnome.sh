@@ -136,7 +136,7 @@ dump() {
 # Print the path to gext (gnome-extensions-cli), installing it with pipx if needed
 gext_bin() {
   if ! command -v pipx > /dev/null; then
-    sudo apt-get install -y pipx
+    apt_get install -y pipx
   fi
   local gext
   gext="$(pipx environment --value PIPX_BIN_DIR)/gext"

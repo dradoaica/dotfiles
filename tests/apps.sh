@@ -51,7 +51,9 @@ echo a.one > "$STATE/code-extensions"
 echo '[{"name":"charts","url":"https://example.invalid/charts"}]' > "$STATE/helm-repositories.json"
 mkdir -p "$HOME/.local/share/applications" "$HOME/.claude"
 touch "$HOME/.local/share/applications/jetbrains-rider-0b1c2d3e-0000-4000-8000-123456789abc.desktop"
-echo '{"old": true}' > "$HOME/.claude/settings.json"
+# A setting that is not saved, such as a token, must stay on this machine, neither replaced nor saved
+echo '{"old": true, "env": {"API_TOKEN": "not-for-the-repository"}}' > "$HOME/.claude/settings.json"
+cp "$HOME/.claude/settings.json" "$TEST_DIR/claude-settings-before"
 
 echo "== Load"
 output="$(bash "$APPS_SH" load)"
@@ -61,9 +63,12 @@ ok "the OpenLogi config is loaded, readable only by its owner"
 grep -qF "\"$HOME/" "$HOME/.claude/settings.json" || fail "the Claude Code settings do not name this home directory"
 ! grep -qF '{home}' "$HOME/.claude/settings.json" || fail "the placeholder for the home directory was loaded as it is"
 ok "the Claude Code settings name this home directory"
-grep -qx '{"old": true}' "$HOME"/.dotfiles-backup/*/.claude/settings.json \
+cmp -s "$TEST_DIR/claude-settings-before" "$HOME"/.dotfiles-backup/*/.claude/settings.json \
   || fail "the replaced settings were not backed up"
 ok "the replaced Claude Code settings are backed up"
+jq -e '.old == true and .env.API_TOKEN == "not-for-the-repository"' "$HOME/.claude/settings.json" > /dev/null \
+  || fail "the Claude Code settings that are not saved were not kept"
+ok "the Claude Code settings that are not saved are kept"
 called "xdg-mime default jetbrains-rider-0b1c2d3e-0000-4000-8000-123456789abc.desktop text/plain"
 grep -qF "Skipped the default app for x-test/missing" <<< "$output" || fail "a missing app was not skipped"
 ok "default apps are matched by pattern, and skipped when not installed"
@@ -98,6 +103,7 @@ cmp -s "$HOME/.config/openlogi/config.toml" "$SAVED/openlogi/config.toml" || fai
 ! grep -qF "$HOME" "$SAVED/claude/settings.json" || fail "the Claude Code settings were saved with the home directory"
 [ "$(cat "$SAVED/default-apps.txt")" = 'text/plain=jetbrains-rider-*.desktop' ] \
   || fail "the default apps were saved as: $(cat "$SAVED/default-apps.txt")"
-ok "dump saves the changes, without the home directory or the IDE's ID"
+! grep -qF "not-for-the-repository" "$SAVED/claude/settings.json" || fail "a setting that is not saved was saved"
+ok "dump saves the changes, without the home directory, the IDE's ID or the settings that are not saved"
 bash "$APPS_SH" check > /dev/null || fail "the saved settings differ from the ones just saved"
 ok "nothing differs after a dump"

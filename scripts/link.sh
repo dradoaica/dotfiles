@@ -21,7 +21,7 @@ case "${1:-}" in
 esac
 
 if [ "$mode" != check ] && ! command -v stow > /dev/null; then
-  sudo apt-get install -y stow
+  apt_get install -y stow
 fi
 
 if [ $# -gt 0 ]; then

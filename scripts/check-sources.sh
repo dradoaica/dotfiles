@@ -63,9 +63,9 @@ brew_exists() {
   esac
 }
 
+# The release packages.sh would install: the newest that is at least RELEASE_MIN_AGE_DAYS old
 jetbrains_toolbox_has_download() {
-  curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
-    | jq -e '.TBA[0].downloads.linux | (.link | strings) and (.checksumLink | strings)'
+  jetbrains_toolbox_download | jq -e '(.link | strings) and (.checksumLink | strings)'
 }
 
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
@@ -93,7 +93,10 @@ nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name // empty')"
 check "nvm installer (release: ${nvm_tag:-not found})" \
   url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"
 check "Flathub repository" url_exists https://flathub.org/repo/flathub.flatpakrepo
-check "Homebrew installer" url_exists https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+# The commit packages.sh would install Homebrew from
+homebrew_commit="$(github_commit Homebrew/install install.sh)"
+check "Homebrew installer (commit: ${homebrew_commit:-not found})" \
+  url_exists "https://raw.githubusercontent.com/Homebrew/install/${homebrew_commit:-missing}/install.sh"
 
 echo "== GitHub releases"
 if bash "$SCRIPT_DIR/github-debs.sh" --check; then

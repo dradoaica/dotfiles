@@ -69,15 +69,43 @@ github_api() {
   curl -fsSL "${auth[@]}" "https://api.github.com/$1"
 }
 
-# github_release <owner/repo>: print, as JSON, the newest release of a repository that is at least 7 days old,
-# leaving out drafts and pre-releases, or nothing when there is none. A release published from a maintainer's
-# hijacked account then has a week to be noticed and withdrawn before it is installed here.
-# Set GITHUB_RELEASE_MIN_AGE_DAYS to change the wait; 0 gives the newest release.
+# What the installer downloads from outside Ubuntu's archive and the PPAs (GitHub releases, nvm, the Homebrew
+# installer, Docker Desktop, JetBrains Toolbox) is only installed once it is this many days old. A release published
+# from a maintainer's hijacked account then has a week to be noticed and withdrawn before it is installed here.
+# Set RELEASE_MIN_AGE_DAYS to change the wait; 0 installs the newest release.
+RELEASE_MIN_AGE_DAYS="${RELEASE_MIN_AGE_DAYS:-7}"
+
+# Print the time, in seconds since 1970, that a release must have been published by to be installed
+release_cutoff() {
+  echo "$(($(date +%s) - RELEASE_MIN_AGE_DAYS * 86400))"
+}
+
+# github_release <owner/repo>: print, as JSON, the newest release of a repository that is at least
+# RELEASE_MIN_AGE_DAYS old, leaving out drafts and pre-releases, or nothing when there is none
 github_release() {
-  github_api "repos/$1/releases?per_page=30" | jq -c --argjson days "${GITHUB_RELEASE_MIN_AGE_DAYS:-7}" '
+  github_api "repos/$1/releases?per_page=30" | jq -c --argjson cutoff "$(release_cutoff)" '
     [.[] | select((.draft or .prerelease) | not)
-         | select((.published_at | fromdateiso8601) <= now - $days * 86400)]
+         | select((.published_at | fromdateiso8601) <= $cutoff)]
     | sort_by(.published_at) | last // empty'
+}
+
+# github_commit <owner/repo> <path>: print the ID of the newest commit that changed a file and is at least
+# RELEASE_MIN_AGE_DAYS old, or nothing when there is none. For installers that are published from a branch rather
+# than as releases, such as Homebrew's.
+github_commit() {
+  local until
+  until="$(date -u -d "@$(release_cutoff)" +%Y-%m-%dT%H:%M:%SZ)"
+  github_api "repos/$1/commits?path=$2&until=$until&per_page=1" | jq -r '.[0].sha // empty'
+}
+
+# Print, as JSON, the Linux download (link and checksumLink) of the newest JetBrains Toolbox release that is at least
+# RELEASE_MIN_AGE_DAYS old, or nothing when there is none. JetBrains dates its releases by day, and can publish two on
+# the same day (e.g. 3.9.1 and 3.8.2), so the build number breaks the tie.
+jetbrains_toolbox_download() {
+  curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&type=release" \
+    | jq -c --argjson cutoff "$(release_cutoff)" '
+      [.TBA[] | select((.date + "T00:00:00Z" | fromdateiso8601) <= $cutoff)]
+      | sort_by(.date, (.build | split(".") | map(tonumber))) | last // empty | .downloads.linux'
 }
 
 # differences <saved folder> <folder>: print what differs between the saved files and the same files as they are
@@ -115,10 +143,19 @@ check() {
   fi
 }
 
+# apt_get <arguments...>: run apt-get as root without stopping for a question. sudo leaves DEBIAN_FRONTEND out of the
+# environment it passes on, so it is given on the command line. dpkg still asks what to do with a config file that was
+# changed here when the package brings a new one, even then: keep the changed file, and take the new one only when the
+# file was not changed.
+apt_get() {
+  sudo DEBIAN_FRONTEND=noninteractive apt-get \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@"
+}
+
 # The upgrades that packages.sh and update.sh both run
 upgrade_apt() {
-  sudo apt-get update
-  sudo apt-get upgrade -y --with-new-pkgs
+  apt_get update
+  apt_get upgrade -y --with-new-pkgs
 }
 upgrade_snaps() { sudo snap refresh; }
 upgrade_flatpaks() { sudo flatpak update -y; }

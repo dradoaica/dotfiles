@@ -5,7 +5,6 @@
 # at the end.
 
 set -euo pipefail
-export DEBIAN_FRONTEND=noninteractive
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -58,13 +57,13 @@ rust() {
 node_js() {
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] || { echo "nvm is not installed, skipping"; return; }
-  # nvm is a Git checkout; move it forward to its newest release tag that is at least 7 days old, the same wait
-  # as for the releases the installer downloads (see github_release in lib.sh)
+  # nvm is a Git checkout; move it forward to its newest release tag that is at least RELEASE_MIN_AGE_DAYS old, the
+  # same wait as for the releases the installer downloads (see lib.sh)
   local tags oldest_allowed newest_tag
   git -C "$NVM_DIR" fetch --tags --quiet
   tags="$(git -C "$NVM_DIR" for-each-ref --sort=-creatordate --format='%(creatordate:unix) %(refname:short)' \
     'refs/tags/v[0-9]*')"
-  oldest_allowed="$(($(date +%s) - ${GITHUB_RELEASE_MIN_AGE_DAYS:-7} * 86400))"
+  oldest_allowed="$(release_cutoff)"
   newest_tag="$(awk -v oldest_allowed="$oldest_allowed" '$1 <= oldest_allowed { print $2; exit }' <<< "$tags")"
   if [ -n "$newest_tag" ] && git -C "$NVM_DIR" merge-base --is-ancestor HEAD "$newest_tag"; then
     git -C "$NVM_DIR" -c advice.detachedHead=false checkout --quiet "$newest_tag"

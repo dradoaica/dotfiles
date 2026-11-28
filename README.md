@@ -26,11 +26,14 @@ aware that it:
   each script are kept).
 - Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
   GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
-  digest GitHub publishes for it; a file without one is not installed. A release is only installed once it is 7 days
-  old, so one published from a hijacked account has time to be noticed and withdrawn; the same wait applies to nvm (set
-  `GITHUB_RELEASE_MIN_AGE_DAYS` to change it). Installs Docker Desktop the same way from Docker's update feed
-  ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the `checksums.txt` Docker publishes
-  for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes next to each download.
+  digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
+  Docker's update feed ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the
+  `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
+  next to each download. A checksum from the same server as the file does not help when that server or a maintainer's
+  account is taken over, so each of these, nvm and the Homebrew installer are only installed once they are 7 days
+  old, giving a bad release time to be noticed and withdrawn (set `RELEASE_MIN_AGE_DAYS` to change the wait; `0`
+  installs the newest). Docker's feed only offers its newest build: until that is 7 days old, an update keeps the
+  installed build, and a fresh install stops with a message saying when to run it again.
 - Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
   [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/idplug.sh`](scripts/idplug.sh)). MAI
   publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
@@ -63,8 +66,9 @@ aware that it:
 - Installs the udev rules in [`system/udev/`](system/udev) to `/etc/udev/rules.d/`.
 - Creates a GPG key named "Docker Desktop" and initialises `pass` with it, so Docker Desktop can store registry
   credentials. GnuPG asks for the key's passphrase in a dialog; when Docker Desktop first needs it, the dialog can save
-  it in your login keyring, which unlocks it from then on when you log in. Machines set up before this made the key
-  without a passphrase: add one with `gpg --passwd 'Docker Desktop'` (`make doctor` reports it).
+  it in your login keyring, which unlocks it from then on when you log in. The key never expires, since `pass` cannot
+  store credentials with an expired one. Machines set up before this made the key without a passphrase, or with
+  GnuPG's default expiry of 3 years: `make doctor` reports both, with the command that fixes each.
 
 The script is safe to re-run.
 
@@ -196,9 +200,12 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 
 - **OpenLogi**: `~/.config/openlogi/config.toml` (Logitech button bindings, DPI, gestures), copied in and out. Loading
   backs up the current file to `~/.dotfiles-backup/`; restart OpenLogi afterwards.
-- **Claude Code**: `~/.claude/settings.json` (model, theme, plugins, auto mode), copied in and out the same way, since
-  Claude Code rewrites the file. The home directory in the paths it holds is saved as `{home}`, and loaded as the home
-  directory of whoever loads it. The loaded settings apply to new Claude Code sessions.
+- **Claude Code**: the model, theme, plugins and auto mode settings from `~/.claude/settings.json`, since Claude Code
+  rewrites the file. Only the keys listed in `CLAUDE_SAVED_KEYS` in `apps.sh` are saved, so a setting that holds a
+  secret, such as an `env` block with a token, is never copied into this public repository; `make dump` names the
+  ones it left out. Loading replaces the saved keys and keeps the others as they are. The home directory in the paths
+  the settings hold is saved as `{home}`, and loaded as the home directory of whoever loads them. The loaded settings
+  apply to new Claude Code sessions.
 - **Default apps**: the default applications from `~/.config/mimeapps.list`, applied with `xdg-mime`. JetBrains IDEs
   are matched by name, since their entries carry a per-installation ID; apps that are not installed yet are skipped.
 - **VS Code extensions**: the list from `code --list-extensions`; loading installs the ones that are missing.
@@ -246,14 +253,13 @@ per machine. [`scripts/apps.sh`](scripts/apps.sh) saves them to and restores the
 - **Remove the links** with `make unlink`. The files stay in the repository; restore your originals from
   `~/.dotfiles-backup/` if you want them back.
 - **Check the whole machine** with `make doctor`, for example after `make packages` or a release upgrade; every
-  `make update` ends with it. It checks,
-  without changing anything, that the dotfiles are linked, Docker uses Docker Desktop,
-  Docker Desktop's GPG key has a passphrase, MicroK8s does not start at boot, `~/.kube/config` is private, ClamAV's
-  definitions update and its daemon stays off, `gh` is logged in, Git signs commits, commits to this repository are
-  checked for secrets, everything listed in `packages/` is installed, the PPAs are kept to their own packages, the
-  udev rules are installed and no others were added by hand, the apps from GitHub releases are installed, Chrome and
-  Firefox can use the electronic ID card, every GNOME extension is enabled, and the GNOME and app settings are the
-  saved ones.
+  `make update` ends with it. It checks, without changing anything, that the dotfiles are linked, Docker uses Docker
+  Desktop, Docker Desktop's GPG key has a passphrase and never expires, MicroK8s does not start at boot,
+  `~/.kube/config` is private, ClamAV's definitions update and its daemon stays off, `gh` is logged in, Git signs
+  commits, commits to this repository are checked for secrets, everything listed in `packages/` is installed, the PPAs
+  are kept to their own packages, the udev rules are installed and no others were added by hand, the apps from GitHub
+  releases are installed, Chrome and Firefox can use the electronic ID card, every GNOME extension is enabled, and the
+  GNOME and app settings are the saved ones.
 - **Search the history** with <kbd>Ctrl</kbd>+<kbd>R</kbd> ([fzf](https://github.com/junegunn/fzf)).
   <kbd>Ctrl</kbd>+<kbd>T</kbd> inserts a file path and <kbd>Alt</kbd>+<kbd>C</kbd> changes into a directory. Each
   command is written to the history as soon as it runs, so new terminals can find it straight away. The history keeps
@@ -280,11 +286,11 @@ container:
 
 - **sources**: checks that everything the installer downloads from still works for Ubuntu 26.04: the PPAs, the Docker,
   GitHub CLI and Chrome repositories and their signing keys, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm,
-  Flathub and Homebrew downloads, and a matching `.deb` with a SHA-256 digest in the latest release of each app in
-  `github-debs.sh`. IDplug Classic is built for Ubuntu 24.04, so its `.deb` is also checked to install on 26.04. The
-  weekly run catches a source that broke while nothing in this repository changed. It also checks that those sources
-  still offer every package in `packages/`, so a renamed or removed package shows up here rather than during an install.
-  Run the same check locally with `make sources`.
+  Flathub and Homebrew downloads (the releases the installer would pick, at least 7 days old), and a matching `.deb`
+  with a SHA-256 digest in the latest release of each app in `github-debs.sh`. IDplug Classic is built for Ubuntu 24.04,
+  so its `.deb` is also checked to install on 26.04. The weekly run catches a source that broke while nothing in this
+  repository changed. It also checks that those sources still offer every package in `packages/`, so a renamed or
+  removed package shows up here rather than during an install. Run the same check locally with `make sources`.
 
 - **packages**: adds the PPAs and repositories as the installer does, then has apt work out an installation of
   every package in `apt.txt` together, without installing them (`scripts/packages.sh --simulate`). This catches what

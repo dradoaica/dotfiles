@@ -9,7 +9,10 @@
 #            package it depends on, without installing anything
 
 set -euo pipefail
-export DEBIAN_FRONTEND=noninteractive
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+source "$SCRIPT_DIR/lib.sh"
 
 URL="https://hub.mai.gov.ro/cei/info/descarca-middleware?versiune=450linux"
 VERSION="4.5.0.487"
@@ -56,7 +59,7 @@ if [ -n "$installed" ] && ! dpkg --compare-versions "$installed" lt "$VERSION"; 
 else
   download
   chmod 644 "$deb"
-  sudo apt-get install -y "$deb"
+  apt_get install -y "$deb"
 fi
 
 # Chrome creates the database on its first start; create it now if Chrome has not run yet

@@ -7,7 +7,6 @@
 #               together, without installing them. CI runs this in a container of the release.
 
 set -euo pipefail
-export DEBIAN_FRONTEND=noninteractive
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -26,8 +25,8 @@ source /etc/os-release
 export PATH="$PATH:/snap/bin"
 
 prerequisites() {
-  sudo apt-get update
-  sudo apt-get install -y "${PREREQUISITES[@]}"
+  apt_get update
+  apt_get install -y "${PREREQUISITES[@]}"
 }
 
 # write_sources <name> <URI> <suite> <components> <keyring file>: write /etc/apt/sources.list.d/<name>.sources in
@@ -91,7 +90,7 @@ apt_sources() {
   # .NET comes from Ubuntu's archive, and nothing else needs Microsoft's repository (purging
   # packages-microsoft-prod removes its sources entry and key):
   if dpkg -s packages-microsoft-prod > /dev/null 2>&1; then
-    sudo apt-get purge -y packages-microsoft-prod
+    apt_get purge -y packages-microsoft-prod
   fi
 }
 
@@ -111,14 +110,14 @@ apt_packages() {
   # The Craft apps replace LibreOffice, which comes with Ubuntu. Purging these two removes every LibreOffice package,
   # since they all depend on them; `apt-get autoremove` (scripts/cleanup.sh) then removes the libraries they pulled in.
   if dpkg -s libreoffice-common > /dev/null 2>&1; then
-    sudo apt-get purge -y libreoffice-common libreoffice-core
+    apt_get purge -y libreoffice-common libreoffice-core
   fi
   mapfile -t packages < <(read_list apt.txt)
   # One apt-get call is much faster, but fails as a whole if a single package cannot be installed. Then
   # install them one by one, so the rest still get installed, and report the ones that could not be.
-  if ! sudo apt-get install -y "${packages[@]}"; then
+  if ! apt_get install -y "${packages[@]}"; then
     for package in "${packages[@]}"; do
-      sudo apt-get install -y "$package" || missing+=("$package")
+      apt_get install -y "$package" || missing+=("$package")
     done
   fi
   if [ "${#missing[@]}" -gt 0 ]; then
@@ -133,7 +132,7 @@ apt_packages() {
 simulate_apt_packages() {
   local packages simulation
   mapfile -t packages < <(read_list apt.txt)
-  sudo apt-get update
+  apt_get update
   if ! simulation="$(apt-get install --simulate "${packages[@]}" 2>&1)"; then
     grep -vE '^(Inst|Conf) ' <<< "$simulation" >&2
     return 1
@@ -169,8 +168,8 @@ rust() {
 }
 
 node_js() {
-  # The newest nvm release that is at least 7 days old; PROFILE=/dev/null stops the installer editing ~/.bashrc,
-  # since home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
+  # The newest nvm release that is at least RELEASE_MIN_AGE_DAYS old; PROFILE=/dev/null stops the installer editing
+  # ~/.bashrc, since home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
   local nvm_tag
   nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name')"
   [ -n "$nvm_tag" ] || { echo "Found no nvm release to install" >&2; return 1; }
@@ -217,8 +216,9 @@ docker_credentials() {
   key_id="$(gpg_key_id "Docker Desktop")"
   if [ -z "$key_id" ]; then
     # GnuPG asks for the key's passphrase in a dialog. When Docker Desktop first needs it, the dialog can save it in
-    # the login keyring, which unlocks it from then on when you log in.
-    gpg --batch --quick-gen-key "Docker Desktop" default default
+    # the login keyring, which unlocks it from then on when you log in. The key never expires: GnuPG's default of 3
+    # years would leave pass unable to store credentials, and `docker login` failing, from one day to the next.
+    gpg --batch --quick-gen-key "Docker Desktop" default default never
     key_id="$(gpg_key_id "Docker Desktop")"
   fi
   pass init "$key_id"
@@ -257,8 +257,16 @@ kubernetes() {
 }
 
 homebrew() {
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  load_homebrew
+  # Installed only once: `brew update` (scripts/update.sh) updates it. The installer runs with the sudo this script
+  # has already unlocked, so take it from the newest commit that is at least RELEASE_MIN_AGE_DAYS old, not the branch.
+  if ! load_homebrew; then
+    local commit
+    commit="$(github_commit Homebrew/install install.sh)"
+    [ -n "$commit" ] || { echo "Found no commit of the Homebrew installer to install from" >&2; return 1; }
+    NONINTERACTIVE=1 /bin/bash -c \
+      "$(curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/$commit/install.sh")"
+    load_homebrew
+  fi
   local line args missing=()
   while read -r line; do
     IFS=' ' read -r -a args <<< "$line"
@@ -277,8 +285,11 @@ jetbrains_toolbox() {
     return
   fi
   local download url checksum archive
-  download="$(curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release" \
-    | jq -c '.TBA[0].downloads.linux')"
+  download="$(jetbrains_toolbox_download)"
+  if [ -z "$download" ]; then
+    echo "Found no JetBrains Toolbox release that is at least $RELEASE_MIN_AGE_DAYS days old" >&2
+    return 1
+  fi
   url="$(jq -r '.link' <<< "$download")"
   # JetBrains publishes a SHA-256 file ("<hash> *<file name>") next to each download
   checksum="$(curl -fsSL "$(jq -r '.checksumLink' <<< "$download")" | awk '{ print $1 }')"
@@ -316,7 +327,7 @@ udev_rules() {
 github_releases() {
   # OpenLogi replaces Solaar, and does not work while Solaar is installed: both drive the same Logitech devices
   if dpkg -s solaar > /dev/null 2>&1; then
-    sudo apt-get purge -y solaar
+    apt_get purge -y solaar
   fi
   # The apps in packages/github-debs.txt
   bash "$SCRIPT_DIR/github-debs.sh"

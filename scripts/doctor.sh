@@ -30,6 +30,20 @@ docker_key_has_passphrase() {
       || { echo "add a passphrase with: gpg --passwd 'Docker Desktop'" >&2; return 1; }
   done
 }
+# Once the key, or the subkey pass encrypts with, expires, pass cannot store credentials and `docker login` fails.
+# packages.sh makes keys that never expire; GnuPG's default, which earlier versions used, is 3 years.
+docker_key_never_expires() {
+  local keys fingerprint expiry
+  keys="$(gpg --list-keys --with-colons "Docker Desktop" 2> /dev/null)"
+  [ -n "$keys" ] || { echo "there is no key named Docker Desktop" >&2; return 1; }
+  fingerprint="$(awk -F: '$1 == "fpr" { print $10; exit }' <<< "$keys")"
+  expiry="$(awk -F: '($1 == "pub" || $1 == "sub") && $7 != "" { print $7 }' <<< "$keys" | sort -n | head -1)"
+  if [ -n "$expiry" ]; then
+    echo "it expires on $(date -d "@$expiry" +%F); remove the expiry with:" \
+      "gpg --quick-set-expire $fingerprint never && gpg --quick-set-expire $fingerprint never '*'" >&2
+    return 1
+  fi
+}
 docker_desktop_settings() {
   jq -e '.OpenUIOnStartupDisabled == true and .AutoStart == false' "$HOME/.docker/desktop/settings-store.json"
 }
@@ -125,6 +139,7 @@ check "docker uses Docker Desktop (desktop-linux context)" docker_context_is_des
 check "Docker Desktop does not start at login" user_service_disabled docker-desktop
 check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
 check "the GPG key Docker Desktop stores credentials with has a passphrase" docker_key_has_passphrase
+check "the GPG key Docker Desktop stores credentials with never expires" docker_key_never_expires
 
 echo "== Kubernetes"
 check "MicroK8s does not start at boot" microk8s_not_started_at_boot
