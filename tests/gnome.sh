@@ -89,3 +89,15 @@ if GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null 2>&1; then
   fail "a changed setting was not reported"
 fi
 echo "ok    a changed setting is reported"
+
+echo "== Runtime state"
+dconf reset /org/gnome/desktop/interface/changed-since
+dconf write /org/gnome/shell/extensions/bingwallpaper/state "'changed'"
+GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null || fail "a change to runtime state was reported"
+echo "ok    a change to runtime state is not reported"
+# Named like the runtime state of Bing Wallpaper, in another folder: a setting like any other
+dconf write /org/gnome/TextEditor/state "'value'"
+if GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null 2>&1; then
+  fail "a setting named like runtime state in another folder was not reported"
+fi
+echo "ok    a setting named like runtime state in another folder is reported"

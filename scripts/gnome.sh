@@ -45,30 +45,44 @@ declare -A DCONF_PATHS=(
   [text-editor]=/org/gnome/TextEditor/
 )
 
-# Keys that hold runtime state or machine-specific paths rather than preferences: never saved or reset
+# Keys that hold runtime state or machine-specific paths rather than preferences, by their full path: never saved or
+# reset. dconf dump prints them under the folder they are in, so without_volatile_keys matches them per folder.
 VOLATILE_KEYS=(
-  active-profile
-  bing-json
-  folder
-  last-extension-version
-  last-prefs-version
-  last-save-directory
-  last-version
-  last-version-name-installed
-  migrated-gtk-settings
-  mru-sources
-  numlock-state
-  periodic-timestamp
-  prefs-open-count
-  prompt-check
-  recently-installed-apps
-  selected-image
-  state
-  window-height
-  window-width
+  # Déjà Dup: where and when it last backed up, and its window size
+  /org/gnome/deja-dup/google/folder
+  /org/gnome/deja-dup/local/folder
+  /org/gnome/deja-dup/periodic-timestamp
+  /org/gnome/deja-dup/prompt-check
+  /org/gnome/deja-dup/window-height
+  /org/gnome/deja-dup/window-width
+  # GNOME: the input source used last and the Num Lock state, which change as you type
+  /org/gnome/desktop/input-sources/mru-sources
+  /org/gnome/desktop/peripherals/keyboard/numlock-state
+  /org/gnome/nautilus/preferences/migrated-gtk-settings
+  /org/gnome/TextEditor/last-save-directory
+  # Extensions: the version they last ran as, the apps installed lately, and the Bing image of the day
+  /org/gnome/shell/extensions/arcmenu/recently-installed-apps
+  /org/gnome/shell/extensions/bingwallpaper/bing-json
+  /org/gnome/shell/extensions/bingwallpaper/selected-image
+  /org/gnome/shell/extensions/bingwallpaper/state
+  /org/gnome/shell/extensions/burn-my-windows/active-profile
+  /org/gnome/shell/extensions/burn-my-windows/last-extension-version
+  /org/gnome/shell/extensions/burn-my-windows/last-prefs-version
+  /org/gnome/shell/extensions/burn-my-windows/prefs-open-count
+  /org/gnome/shell/extensions/com/github/hermes83/compiz-windows-effect/last-version
+  /org/gnome/shell/extensions/dash-to-panel/recently-installed-apps
+  /org/gnome/shell/extensions/tilingshell/last-version-name-installed
 )
-# Matches a "key=value" line of a dconf dump for any of them
-VOLATILE_PATTERN="^($(IFS='|'; echo "${VOLATILE_KEYS[*]}"))="
+
+# without_volatile_keys <dconf folder>: copy a dump of that folder from stdin to stdout without the VOLATILE_KEYS
+without_volatile_keys() {
+  awk -v folder="$1" -v volatile="${VOLATILE_KEYS[*]}" '
+    BEGIN { count = split(volatile, keys, " "); for (i = 1; i <= count; i++) skip[keys[i]] = 1 }
+    # A section is a folder below the dumped one, or [/] for the dumped one itself
+    /^\[/ { section = substr($0, 2, length($0) - 2); prefix = folder (section == "/" ? "" : section "/") }
+    /=/ && (prefix substr($0, 1, index($0, "=") - 1)) in skip { next }
+    { print }'
+}
 
 # Dash to Panel keeps its per-monitor settings under each monitor's ID (<vendor>-<serial>, e.g. DEL-ABC1234), which
 # differs on every machine. The ID of the primary monitor is saved as this placeholder, and loading puts the ID of
@@ -107,7 +121,7 @@ dump() {
   mkdir -p "$DCONF_DIR"
   for name in "${!DCONF_PATHS[@]}"; do
     # With no primary monitor, this replaces the placeholder with itself
-    dconf dump "${DCONF_PATHS[$name]}" | { grep -vE "$VOLATILE_PATTERN" || true; } \
+    dconf dump "${DCONF_PATHS[$name]}" | without_volatile_keys "${DCONF_PATHS[$name]}" \
       | replace "${primary:-$MONITOR_PLACEHOLDER}" "$MONITOR_PLACEHOLDER" > "$DCONF_DIR/$name.dconf"
   done
   # Only the enabled extensions and the apps pinned to the panel from /org/gnome/shell/, not the whole tree
@@ -180,7 +194,7 @@ load() {
     while read -r key; do
       dconf reset "$path$key"
     done < <(LC_ALL=C comm -23 \
-      <(dconf dump "$path" | { grep -vE "$VOLATILE_PATTERN" || true; } | dconf_keys | LC_ALL=C sort) \
+      <(dconf dump "$path" | without_volatile_keys "$path" | dconf_keys | LC_ALL=C sort) \
       <(dconf_keys < "$file" | LC_ALL=C sort))
     if [ -n "$primary" ]; then
       replace "$MONITOR_PLACEHOLDER" "$primary" < "$file" | dconf load "$path"
