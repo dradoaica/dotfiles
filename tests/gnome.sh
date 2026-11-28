@@ -6,6 +6,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tests/lib.sh
+source "$ROOT_DIR/tests/lib.sh"
 
 if [ -z "${GNOME_TEST_DIR:-}" ]; then
   GNOME_TEST_DIR="$(mktemp -d)"
@@ -27,16 +29,12 @@ fi
 GNOME_SH="$GNOME_TEST_DIR/repo/scripts/gnome.sh"
 DASH_TO_PANEL=/org/gnome/shell/extensions/dash-to-panel
 
-fail() {
-  echo "FAIL  $1" >&2
-  exit 1
-}
 # expect <description> <key> <value>: the key must hold exactly that value (empty: the key must not be set)
 expect() {
   local value
   value="$(dconf read "$2")"
   [ "$value" = "$3" ] || fail "$1: $2 is ${value:-not set}, expected ${3:-not set}"
-  echo "ok    $1"
+  ok "$1"
 }
 
 # Print each setting in a dconf dump as <section><key>=<value>, which leaves out the sections without settings
@@ -58,17 +56,17 @@ expect "a setting kept per monitor is left as it was" "$DASH_TO_PANEL/panel-size
 if dconf dump / | grep -qF '{primary-monitor}'; then
   fail "the placeholder for the primary monitor was loaded as it is"
 fi
-echo "ok    the placeholder for the primary monitor is not loaded"
+ok "the placeholder for the primary monitor is not loaded"
 diff <(dconf dump /org/gnome/desktop/interface/) "$ROOT_DIR/gnome/dconf/desktop-interface.dconf" \
   || fail "the interface settings differ from the saved ones"
-echo "ok    the saved settings are loaded"
+ok "the saved settings are loaded"
 
 echo "== Load with a primary monitor"
 GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" load
 expect "the primary monitor is this machine's" "$DASH_TO_PANEL/primary-monitor" "'TST-123'"
 dconf read "$DASH_TO_PANEL/panel-sizes" | grep -qF '"TST-123":' \
   || fail "the settings kept per monitor do not name the primary monitor"
-echo "ok    the settings kept per monitor name the primary monitor"
+ok "the settings kept per monitor name the primary monitor"
 
 echo "== Dump"
 # The extensions cannot be listed, which keeps the saved list
@@ -79,25 +77,25 @@ for file in "$ROOT_DIR"/gnome/dconf/*.dconf; do
 done
 diff "$GNOME_TEST_DIR/repo/gnome/extensions.txt" "$ROOT_DIR/gnome/extensions.txt" \
   || fail "saving without GNOME Shell changes the list of extensions"
-echo "ok    saving the loaded settings gives back the saved ones"
+ok "saving the loaded settings gives back the saved ones"
 
 echo "== Check"
 GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null || fail "the settings differ from the ones just saved"
-echo "ok    nothing differs after a dump"
+ok "nothing differs after a dump"
 dconf write /org/gnome/desktop/interface/changed-since "'value'"
 if GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null 2>&1; then
   fail "a changed setting was not reported"
 fi
-echo "ok    a changed setting is reported"
+ok "a changed setting is reported"
 
 echo "== Runtime state"
 dconf reset /org/gnome/desktop/interface/changed-since
 dconf write /org/gnome/shell/extensions/bingwallpaper/state "'changed'"
 GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null || fail "a change to runtime state was reported"
-echo "ok    a change to runtime state is not reported"
+ok "a change to runtime state is not reported"
 # Named like the runtime state of Bing Wallpaper, in another folder: a setting like any other
 dconf write /org/gnome/TextEditor/state "'value'"
 if GNOME_PRIMARY_MONITOR=TST-123 bash "$GNOME_SH" check > /dev/null 2>&1; then
   fail "a setting named like runtime state in another folder was not reported"
 fi
-echo "ok    a setting named like runtime state in another folder is reported"
+ok "a setting named like runtime state in another folder is reported"

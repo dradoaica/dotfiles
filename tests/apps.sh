@@ -6,6 +6,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tests/lib.sh
+source "$ROOT_DIR/tests/lib.sh"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_DIR/home" "$TEST_DIR/repo" "$TEST_DIR/bin"
@@ -35,11 +37,6 @@ for name in brew code helm xdg-mime; do
 done
 export PATH="$TEST_DIR/bin:$PATH"
 
-fail() {
-  echo "FAIL  $1" >&2
-  exit 1
-}
-ok() { echo "ok    $1"; }
 called() { grep -qxF "$1" "$CALLS" || fail "expected the call: $1"; }
 
 # The lists to load, in place of the saved ones

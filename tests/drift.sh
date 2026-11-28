@@ -5,6 +5,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=tests/lib.sh
+source "$ROOT_DIR/tests/lib.sh"
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
 mkdir -p "$TEST_DIR/repo/packages" "$TEST_DIR/bin"
@@ -70,16 +72,12 @@ expected="Installed but not listed in packages/ (add to the matching list, or to
 output="$(bash "$TEST_DIR/repo/scripts/drift.sh")"
 if [ "$output" != "$expected" ]; then
   diff <(echo "$expected") <(echo "$output") >&2 || true
-  echo "FAIL  drift.sh reports something other than the packages installed by hand" >&2
-  exit 1
+  fail "drift.sh reports something other than the packages installed by hand"
 fi
-echo "ok    only the packages installed by hand are reported"
+ok "only the packages installed by hand are reported"
 
 printf '%s\n' "apt:(by-hand|third-party)" "brew:extra-formula" "flatpak:org.example.Extra" "snap:extra-snap" \
   >> "$LISTS/ignore.txt"
 output="$(bash "$TEST_DIR/repo/scripts/drift.sh")"
-[ "$output" = "Everything installed is listed in packages/" ] || {
-  echo "FAIL  drift.sh still reports ignored packages: $output" >&2
-  exit 1
-}
-echo "ok    ignored packages are not reported"
+[ "$output" = "Everything installed is listed in packages/" ] || fail "drift.sh still reports ignored packages: $output"
+ok "ignored packages are not reported"

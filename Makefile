@@ -55,4 +55,4 @@ lint: ## Run shellcheck on the scripts
 	shellcheck $(SCRIPTS)
 
 test: ## Run the tests in tests/, which use a private home directory and settings database
-	@for test in tests/*.sh; do echo "== $$test"; bash "$$test" || exit 1; done
+	@for test in tests/*.sh; do [ "$$test" != tests/lib.sh ] || continue; echo "== $$test"; bash "$$test" || exit 1; done
