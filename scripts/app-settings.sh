@@ -1,8 +1,7 @@
 #!/bin/bash
 # Save or restore app settings that cannot be symlinked: the apps rewrite the files, or the files hold
-# machine-specific names. They are kept in app-settings/.
-# Usage: app-settings.sh dump   save the OpenLogi config, Claude Code settings, default apps, VS Code extensions and
-#                               Helm repositories
+# machine-specific names. They are kept in app-settings/, one section below per app.
+# Usage: app-settings.sh dump   save the settings of every app in APPS into the repository
 #        app-settings.sh load   apply them to this machine
 #        app-settings.sh check  report the ones that differ from the saved ones, changing nothing
 
@@ -13,37 +12,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 BACKUP_DIR="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 
-OPENLOGI_CONFIG="$HOME/.config/openlogi/config.toml"
-CLAUDE_SETTINGS="$HOME/.claude/settings.json"
-MIMEAPPS="$HOME/.config/mimeapps.list"
-# The Claude Code settings name files in the home directory by their full path. They are saved with this in its
-# place, and loaded with the home directory of the user who loads them.
-HOME_PLACEHOLDER="{home}"
-# The Claude Code settings that are saved. Anything else in the file, such as an env block holding an API token, is
-# left out, and kept as it is on this machine when the saved ones are loaded. The repository is public: add a key
-# here only when what it holds is safe to publish.
-CLAUDE_SAVED_KEYS='["model", "modelSettings", "theme", "enabledPlugins", "extraKnownMarketplaces", "autoMode"]'
-
-# use_saved_dir <folder>: save to and load from that folder
-use_saved_dir() {
-  SAVED_DIR="$1"
-  SAVED_OPENLOGI_CONFIG="$SAVED_DIR/openlogi/config.toml"
-  SAVED_CLAUDE_SETTINGS="$SAVED_DIR/claude/settings.json"
-  DEFAULT_APPS_FILE="$SAVED_DIR/default-apps.txt"
-  VSCODE_EXTENSIONS_FILE="$SAVED_DIR/vscode-extensions.txt"
-  HELM_REPOS_FILE="$SAVED_DIR/helm-repositories.txt"
-}
-use_saved_dir "$ROOT_DIR/app-settings"
-
-# Where desktop entries are installed (user, system, snap, Flatpak)
-DESKTOP_DIRS=(
-  "$HOME/.local/share/applications"
-  /usr/share/applications
-  /usr/local/share/applications
-  /var/lib/snapd/desktop/applications
-  /var/lib/flatpak/exports/share/applications
-  "$HOME/.local/share/flatpak/exports/share/applications"
-)
+# The apps whose settings are saved, in the order they are saved and loaded. Each has a section below with save_<app>
+# and load_<app>, which write and read the saved copy in SAVED_DIR.
+APPS=(openlogi claude default_apps vscode helm)
+# app-settings/, or a temporary copy of it for `check`
+SAVED_DIR="$ROOT_DIR/app-settings"
 
 # Homebrew installs helm
 load_homebrew || true
@@ -73,50 +46,78 @@ restore_file() {
   echo "Loaded the $3; $4"
 }
 
-dump() {
-  mkdir -p "$SAVED_DIR"
+# --- OpenLogi: the Logitech button bindings, DPI and gestures, copied in and out ------------------------------------
 
-  save_file "$OPENLOGI_CONFIG" "$SAVED_OPENLOGI_CONFIG" "OpenLogi config"
-  if [ -f "$CLAUDE_SETTINGS" ]; then
-    local settings left_out
-    # Read first, so a file that is not valid JSON cannot empty the saved one
-    settings="$(jq --argjson keys "$CLAUDE_SAVED_KEYS" 'with_entries(select(.key | IN($keys[])))' "$CLAUDE_SETTINGS")"
-    left_out="$(jq -r --argjson keys "$CLAUDE_SAVED_KEYS" 'keys_unsorted - $keys | join(", ")' "$CLAUDE_SETTINGS")"
-    mkdir -p "$(dirname "$SAVED_CLAUDE_SETTINGS")"
-    replace "$HOME" "$HOME_PLACEHOLDER" <<< "$settings" > "$SAVED_CLAUDE_SETTINGS"
-    echo "Saved the Claude Code settings"
-    if [ -n "$left_out" ]; then
-      echo "Left these Claude Code settings out, as they are not in CLAUDE_SAVED_KEYS in" \
-        "scripts/app-settings.sh: $left_out" >&2
-    fi
-  fi
+OPENLOGI_CONFIG="$HOME/.config/openlogi/config.toml"
 
-  if [ -f "$MIMEAPPS" ]; then
-    # The [Default Applications] section as mime-type=desktop-entry lines. JetBrains IDE entries carry an
-    # ID that differs per installation (jetbrains-rider-<uuid>.desktop), so save them as a pattern.
-    awk '/^\[/ { section = $0; next } section == "[Default Applications]" && /=/' "$MIMEAPPS" \
-      | sed -E 's/^(.*=jetbrains-[a-z]+)-[0-9a-f-]{36}\.desktop$/\1-*.desktop/' > "$DEFAULT_APPS_FILE"
-    echo "Saved the default apps"
-  fi
+save_openlogi() {
+  save_file "$OPENLOGI_CONFIG" "$SAVED_DIR/openlogi/config.toml" "OpenLogi config"
+}
 
-  if command -v code > /dev/null; then
-    local extensions
-    # Read first, so a failure cannot empty the saved list
-    extensions="$(code --list-extensions)"
-    sort <<< "$extensions" > "$VSCODE_EXTENSIONS_FILE"
-    echo "Saved the VS Code extensions"
-  fi
+load_openlogi() {
+  restore_file "$SAVED_DIR/openlogi/config.toml" "$OPENLOGI_CONFIG" "OpenLogi config" \
+    "restart OpenLogi if it is running"
+}
 
-  if command -v helm > /dev/null; then
-    local repositories
-    # Read first, so a failure cannot empty the saved list (with no repositories, helm prints [])
-    if repositories="$(helm repo list -o json)"; then
-      jq -r '.[] | "\(.name) \(.url)"' <<< "$repositories" > "$HELM_REPOS_FILE"
-      echo "Saved the Helm repositories"
-    else
-      echo "Could not list the Helm repositories; kept the saved list" >&2
-    fi
+# --- Claude Code: the settings in CLAUDE_SAVED_KEYS -----------------------------------------------------------------
+
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+# The settings that are saved. Anything else in the file, such as an env block holding an API token, is left out, and
+# kept as it is on this machine when the saved ones are loaded. The repository is public: add a key here only when
+# what it holds is safe to publish.
+CLAUDE_SAVED_KEYS='["model", "modelSettings", "theme", "enabledPlugins", "extraKnownMarketplaces", "autoMode"]'
+# The settings name files in the home directory by their full path. They are saved with this in its place, and loaded
+# with the home directory of the user who loads them.
+HOME_PLACEHOLDER="{home}"
+
+save_claude() {
+  [ -f "$CLAUDE_SETTINGS" ] || return 0
+  local settings left_out
+  # Read first, so a file that is not valid JSON cannot empty the saved one
+  settings="$(jq --argjson keys "$CLAUDE_SAVED_KEYS" 'with_entries(select(.key | IN($keys[])))' "$CLAUDE_SETTINGS")"
+  left_out="$(jq -r --argjson keys "$CLAUDE_SAVED_KEYS" 'keys_unsorted - $keys | join(", ")' "$CLAUDE_SETTINGS")"
+  mkdir -p "$SAVED_DIR/claude"
+  replace "$HOME" "$HOME_PLACEHOLDER" <<< "$settings" > "$SAVED_DIR/claude/settings.json"
+  echo "Saved the Claude Code settings"
+  if [ -n "$left_out" ]; then
+    echo "Left these Claude Code settings out, as they are not in CLAUDE_SAVED_KEYS in" \
+      "scripts/app-settings.sh: $left_out" >&2
   fi
+}
+
+load_claude() {
+  [ -f "$SAVED_DIR/claude/settings.json" ] || return 0
+  local merged current='{}'
+  merged="$(mktemp)"
+  [ ! -s "$CLAUDE_SETTINGS" ] || current="$(cat "$CLAUDE_SETTINGS")"
+  # The saved settings, after the ones of this machine that are not saved
+  replace "$HOME_PLACEHOLDER" "$HOME" < "$SAVED_DIR/claude/settings.json" \
+    | jq --argjson current "$current" --argjson keys "$CLAUDE_SAVED_KEYS" \
+      '($current | with_entries(select(.key | IN($keys[]) | not))) + .' > "$merged"
+  restore_file "$merged" "$CLAUDE_SETTINGS" "Claude Code settings" "they apply to new Claude Code sessions"
+  rm -f "$merged"
+}
+
+# --- Default apps: the [Default Applications] of mimeapps.list, applied with xdg-mime -------------------------------
+
+MIMEAPPS="$HOME/.config/mimeapps.list"
+# Where desktop entries are installed (user, system, snap, Flatpak)
+DESKTOP_DIRS=(
+  "$HOME/.local/share/applications"
+  /usr/share/applications
+  /usr/local/share/applications
+  /var/lib/snapd/desktop/applications
+  /var/lib/flatpak/exports/share/applications
+  "$HOME/.local/share/flatpak/exports/share/applications"
+)
+
+save_default_apps() {
+  [ -f "$MIMEAPPS" ] || return 0
+  # As mime-type=desktop-entry lines. JetBrains IDE entries carry an ID that differs per installation
+  # (jetbrains-rider-<uuid>.desktop), so save them as a pattern.
+  awk '/^\[/ { section = $0; next } section == "[Default Applications]" && /=/' "$MIMEAPPS" \
+    | sed -E 's/^(.*=jetbrains-[a-z]+)-[0-9a-f-]{36}\.desktop$/\1-*.desktop/' > "$SAVED_DIR/default-apps.txt"
+  echo "Saved the default apps"
 }
 
 # Print the desktop entry matching a name or pattern, e.g. jetbrains-rider-*.desktop
@@ -132,55 +133,83 @@ find_desktop_entry() {
   done
 }
 
+load_default_apps() {
+  [ -f "$SAVED_DIR/default-apps.txt" ] && command -v xdg-mime > /dev/null || return 0
+  local mime pattern entry
+  while IFS='=' read -r mime pattern; do
+    [ -n "$mime" ] || continue
+    entry="$(find_desktop_entry "$pattern")"
+    if [ -n "$entry" ]; then
+      xdg-mime default "$entry" "$mime"
+    else
+      echo "Skipped the default app for $mime: $pattern is not installed"
+    fi
+  done < "$SAVED_DIR/default-apps.txt"
+  echo "Loaded the default apps"
+}
+
+# --- VS Code: the installed extensions; loading installs the missing ones -------------------------------------------
+
+save_vscode() {
+  command -v code > /dev/null || return 0
+  local extensions
+  # Read first, so a failure cannot empty the saved list
+  extensions="$(code --list-extensions)"
+  sort <<< "$extensions" > "$SAVED_DIR/vscode-extensions.txt"
+  echo "Saved the VS Code extensions"
+}
+
+load_vscode() {
+  [ -s "$SAVED_DIR/vscode-extensions.txt" ] && command -v code > /dev/null || return 0
+  local installed extension
+  installed="$(code --list-extensions)"
+  while read -r extension; do
+    [ -n "$extension" ] || continue
+    grep -qixF "$extension" <<< "$installed" && continue
+    # Keep going after a failure, and stop `code` reading the rest of the list from stdin
+    code --install-extension "$extension" < /dev/null || echo "Could not install the VS Code extension $extension" >&2
+  done < "$SAVED_DIR/vscode-extensions.txt"
+  echo "Loaded the VS Code extensions"
+}
+
+# --- Helm: the repositories, by name and URL ------------------------------------------------------------------------
+
+save_helm() {
+  command -v helm > /dev/null || return 0
+  local repositories
+  # Read first, so a failure cannot empty the saved list (with no repositories, helm prints [])
+  if repositories="$(helm repo list -o json)"; then
+    jq -r '.[] | "\(.name) \(.url)"' <<< "$repositories" > "$SAVED_DIR/helm-repositories.txt"
+    echo "Saved the Helm repositories"
+  else
+    echo "Could not list the Helm repositories; kept the saved list" >&2
+  fi
+}
+
+load_helm() {
+  [ -s "$SAVED_DIR/helm-repositories.txt" ] && command -v helm > /dev/null || return 0
+  local name url
+  while IFS=' ' read -r name url; do
+    [ -n "$name" ] || continue
+    helm repo add --force-update "$name" "$url"
+  done < "$SAVED_DIR/helm-repositories.txt"
+}
+
+# --- Every app ------------------------------------------------------------------------------------------------------
+
+dump() {
+  local app
+  mkdir -p "$SAVED_DIR"
+  for app in "${APPS[@]}"; do
+    "save_$app"
+  done
+}
+
 load() {
-  restore_file "$SAVED_OPENLOGI_CONFIG" "$OPENLOGI_CONFIG" "OpenLogi config" \
-    "restart OpenLogi if it is running"
-  if [ -f "$SAVED_CLAUDE_SETTINGS" ]; then
-    local claude_settings current='{}'
-    claude_settings="$(mktemp)"
-    [ ! -s "$CLAUDE_SETTINGS" ] || current="$(cat "$CLAUDE_SETTINGS")"
-    # The saved settings, after the ones of this machine that are not saved
-    replace "$HOME_PLACEHOLDER" "$HOME" < "$SAVED_CLAUDE_SETTINGS" \
-      | jq --argjson current "$current" --argjson keys "$CLAUDE_SAVED_KEYS" \
-        '($current | with_entries(select(.key | IN($keys[]) | not))) + .' > "$claude_settings"
-    restore_file "$claude_settings" "$CLAUDE_SETTINGS" "Claude Code settings" \
-      "they apply to new Claude Code sessions"
-    rm -f "$claude_settings"
-  fi
-
-  if [ -f "$DEFAULT_APPS_FILE" ] && command -v xdg-mime > /dev/null; then
-    local mime pattern entry
-    while IFS='=' read -r mime pattern; do
-      [ -n "$mime" ] || continue
-      entry="$(find_desktop_entry "$pattern")"
-      if [ -n "$entry" ]; then
-        xdg-mime default "$entry" "$mime"
-      else
-        echo "Skipped the default app for $mime: $pattern is not installed"
-      fi
-    done < "$DEFAULT_APPS_FILE"
-    echo "Loaded the default apps"
-  fi
-
-  if [ -s "$VSCODE_EXTENSIONS_FILE" ] && command -v code > /dev/null; then
-    local installed extension
-    installed="$(code --list-extensions)"
-    while read -r extension; do
-      [ -n "$extension" ] || continue
-      grep -qixF "$extension" <<< "$installed" && continue
-      # Keep going after a failure, and stop `code` reading the rest of the list from stdin
-      code --install-extension "$extension" < /dev/null || echo "Could not install the VS Code extension $extension" >&2
-    done < "$VSCODE_EXTENSIONS_FILE"
-    echo "Loaded the VS Code extensions"
-  fi
-
-  if [ -s "$HELM_REPOS_FILE" ] && command -v helm > /dev/null; then
-    local name url
-    while IFS=' ' read -r name url; do
-      [ -n "$name" ] || continue
-      helm repo add --force-update "$name" "$url"
-    done < "$HELM_REPOS_FILE"
-  fi
+  local app
+  for app in "${APPS[@]}"; do
+    "load_$app"
+  done
 }
 
 # Save the settings of this machine to a temporary folder and compare them with the saved ones
@@ -190,7 +219,7 @@ check_saved() {
   trap 'rm -rf "$CHECK_DIR"' EXIT
   # Start from the saved files: dump keeps the ones whose app is not installed here
   cp -r "$saved_dir/." "$CHECK_DIR"
-  use_saved_dir "$CHECK_DIR"
+  SAVED_DIR="$CHECK_DIR"
   dump > /dev/null
   differences "$saved_dir" "$CHECK_DIR"
   echo "The app settings are the saved ones"
