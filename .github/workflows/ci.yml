@@ -21,7 +21,7 @@ defaults:
   run:
     shell: bash
 
-# Lint, link, sources, packages and test run in a container of the release this repository targets, not on the
+# Lint, sources, packages and test run in a container of the release this repository targets, not on the
 # runner's own Ubuntu.
 # Each job has a time limit, so a server that stops answering cannot hold a runner for GitHub's default of 6 hours.
 jobs:
@@ -65,71 +65,16 @@ jobs:
         # The same files as `make lint` locally
         run: make lint
 
-  link:
-    runs-on: ubuntu-latest
-    container: *release
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Stow
-        run: apt-get update && apt-get install -y stow
-      - name: Link into a fresh home directory
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          mkdir -p "$HOME"
-          cp /etc/skel/.bashrc /etc/skel/.profile "$HOME/"
-          bash scripts/link.sh
-          bash scripts/link.sh --check
-          # The existing .bashrc and .profile must have been backed up
-          test -f "$HOME"/.dotfiles-backup/*/.bashrc
-          # A second run must not back up anything
-          if bash scripts/link.sh | grep "Backed up"; then exit 1; fi
-      - name: Remove a link to a file that is no longer in the repository
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          ln -s "$PWD/home/bash/.removed" "$HOME/.removed"
-          if bash scripts/link.sh --check; then exit 1; fi
-          bash scripts/link.sh | grep "Removed ~/.removed"
-          test ! -L "$HOME/.removed"
-          bash scripts/link.sh --check
-      - name: Start an interactive shell with the linked files
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          bash -ic 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
-      - name: Keep a long history when new terminals start
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          # Fill the file the shell keeps its history in with more than the 2000 lines Ubuntu's .bashrc trims
-          # ~/.bash_history to, then check that new terminals still load all of it
-          histfile="$(bash -i <<< 'echo "$HISTFILE"' 2> /dev/null | tail -1)"
-          seq 1 5000 | sed 's/^/echo /' > "$histfile"
-          for shell in first second; do
-            entries="$(bash -i <<< 'history | wc -l' 2> /dev/null | tail -1)"
-            echo "The $shell shell loaded $entries history entries from ${histfile#"$HOME"/}"
-            [ "$entries" -ge 5000 ]
-          done
-      - name: Start login shells with the linked files, as the GNOME session does
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          bash -lc 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
-          sh -lc 'echo "NVM_DIR=$NVM_DIR"' | grep -q "NVM_DIR=$HOME/.nvm"
-      - name: Unlink
-        run: |
-          export HOME="$RUNNER_TEMP/home"
-          bash scripts/link.sh --unlink
-          if bash scripts/link.sh --check; then exit 1; fi
-          test ! -e "$HOME/.config/git/config"
-
   test:
     runs-on: ubuntu-latest
     container: *release
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install dconf, D-Bus, jq and make
-        run: apt-get update && apt-get install -y dbus-daemon dconf-cli dconf-service jq make
-      - name: Load, save and check the GNOME and app settings in an empty home directory, and report drift
-        # The same test as `make test` locally
+      - name: Install dconf, D-Bus, jq, make and Stow
+        run: apt-get update && apt-get install -y dbus-daemon dconf-cli dconf-service jq make stow
+      - name: Run the tests in tests/, each in an empty home directory
+        # The same tests as `make test` locally
         run: make test
 
   secrets:

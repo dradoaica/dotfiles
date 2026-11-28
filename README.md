@@ -172,8 +172,9 @@ container:
   catches a source that broke while nothing here changed.
 - **packages**: apt can install everything in `apt.txt` together from those sources (`packages.sh --simulate`).
 - **lint** (`make lint`): shellcheck on every script.
-- **link**: the dotfiles link into a fresh home directory and unlink again, and the shells they set up start.
-- **test** (`make test`): the tests in [`tests/`](tests), each in a private home directory and settings database.
+- **test** (`make test`): the tests in [`tests/`](tests), each in a private home directory and settings database:
+  linking and the shells the dotfiles set up, the GNOME and app settings, the components, Docker Desktop's updates
+  and drift.
 - **secrets**: gitleaks over the whole history, behind the pre-commit hook.
 
 The pre-push hook runs `make lint test` too, since `main` is pushed to directly. Dependabot keeps the pinned GitHub
