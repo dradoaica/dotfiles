@@ -67,7 +67,6 @@ gnome-tweaks
 google-chrome-stable
 gstreamer1.0-fdkaac  # AAC audio playback
 ksnip
-libreoffice
 nexis
 openrazer-meta
 polychromatic

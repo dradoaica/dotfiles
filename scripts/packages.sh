@@ -108,6 +108,11 @@ upgrade() {
 
 apt_packages() {
   local packages package missing=()
+  # The Craft apps replace LibreOffice. Purging these two removes every LibreOffice package, since they all depend on
+  # them; `apt-get autoremove` (scripts/cleanup.sh) then removes the libraries they pulled in.
+  if dpkg -s libreoffice-common > /dev/null 2>&1; then
+    sudo apt-get purge -y libreoffice-common libreoffice-core
+  fi
   mapfile -t packages < <(read_list apt.txt)
   # One apt-get call is much faster, but fails as a whole if a single package cannot be installed. Then
   # install them one by one, so the rest still get installed, and report the ones that could not be.
@@ -138,6 +143,10 @@ simulate_apt_packages() {
 
 snap_packages() {
   local line args missing=()
+  # The Craft apps replace GIMP
+  if snap list gimp > /dev/null 2>&1; then
+    sudo snap remove --purge gimp
+  fi
   while read -r line; do
     IFS=' ' read -r -a args <<< "$line"
     sudo snap install "${args[@]}" || missing+=("${args[0]}")

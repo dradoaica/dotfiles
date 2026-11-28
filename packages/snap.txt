@@ -2,7 +2,6 @@
 
 code --classic
 firefox
-gimp
 gitkraken --classic
 gnome-chess
 kubectl --classic

@@ -14,6 +14,7 @@ load_homebrew || true
 
 installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
 not_installed() { ! installed "$1"; }
+not_snap_installed() { ! snap list "$1" > /dev/null 2>&1; }
 user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2> /dev/null)" != enabled ]; }
 service_disabled() { [ "$(systemctl is-enabled "$1" 2> /dev/null)" != enabled ]; }
 service_running() { systemctl is-active --quiet "$1"; }
@@ -157,6 +158,8 @@ while read -r repo package _; do
   check "$package from $repo is installed" installed "$package"
 done < <(read_list github-debs.txt)
 check "Solaar is not installed" not_installed solaar
+check "LibreOffice is not installed (the Craft apps replace it)" not_installed libreoffice-common
+check "GIMP is not installed (the Craft apps replace it)" not_snap_installed gimp
 check "Wayland Scroll Factor is enabled" wsf_enabled
 check "IDplug Classic is installed" installed idplugclassic
 check "Chrome can use the electronic ID card (IDEMIA IDPlug module)" chrome_has_idplug

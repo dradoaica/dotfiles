@@ -2,7 +2,7 @@
 # whole name, prefixed with the package manager (apt:, snap:, flatpak: or brew:). One per line.
 
 # Installed with Ubuntu: language support, kernels, boot loader, drivers
-apt:(language-pack|hunspell|hyphen|mythes|gnome-user-docs|libreoffice-(help|l10n))-.*
+apt:(language-pack|hunspell|hyphen|mythes|gnome-user-docs)-.*
 apt:(ibus-table|libchewing|libpinyin|libopencc|libm17n|m17n-db|libotf|wbritish).*
 apt:(linux|grub|shim|efibootmgr).*
 apt:(nvidia|libnvidia).*
