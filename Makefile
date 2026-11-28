@@ -1,7 +1,7 @@
 # Shortcuts for the scripts in scripts/. Run `make` to list them.
 
 SHELL := /bin/bash
-SCRIPTS := scripts/*.sh tests/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit .githooks/pre-push
+SCRIPTS := scripts/*.sh scripts/components/*.sh tests/*.sh home/bash/.bashrc.d/*.sh home/bash/.profile .githooks/pre-commit .githooks/pre-push
 
 .DEFAULT_GOAL := help
 .PHONY: help install update packages link unlink check doctor extensions load dump lint test sources drift signing

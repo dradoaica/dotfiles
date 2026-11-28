@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Helpers shared by the scripts in scripts/. Source it; it sets ROOT_DIR to the repository.
+# Helpers shared by the scripts in scripts/ and scripts/components/. Source it; it sets ROOT_DIR to the repository.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -96,16 +96,6 @@ github_commit() {
   local until
   until="$(date -u -d "@$(release_cutoff)" +%Y-%m-%dT%H:%M:%SZ)"
   github_api "repos/$1/commits?path=$2&until=$until&per_page=1" | jq -r '.[0].sha // empty'
-}
-
-# Print, as JSON, the Linux download (link and checksumLink) of the newest JetBrains Toolbox release that is at least
-# RELEASE_MIN_AGE_DAYS old, or nothing when there is none. JetBrains dates its releases by day, and can publish two on
-# the same day (e.g. 3.9.1 and 3.8.2), so the build number breaks the tie.
-jetbrains_toolbox_download() {
-  curl -fsS "https://data.services.jetbrains.com/products/releases?code=TBA&type=release" \
-    | jq -c --argjson cutoff "$(release_cutoff)" '
-      [.TBA[] | select((.date + "T00:00:00Z" | fromdateiso8601) <= $cutoff)]
-      | sort_by(.date, (.build | split(".") | map(tonumber))) | last // empty | .downloads.linux'
 }
 
 # differences <saved folder> <folder>: print what differs between the saved files and the same files as they are
@@ -205,4 +195,129 @@ finish() {
   fi
   echo "$1"
   [ "$log_started" = false ] || echo "The whole output is saved in $DOTFILES_LOG"
+}
+
+# deb_installed <package>: succeed when an APT package is installed
+deb_installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
+deb_not_installed() { ! deb_installed "$1"; }
+
+# all_installed <list in packages/> <command printing what is installed>: every entry of the list must be among
+# them. The first word of an entry is its name, without the options before it or the tap it comes from.
+all_installed() {
+  local list="$1" installed_names name missing=0
+  shift
+  installed_names="$("$@")" || return 1
+  while read -r name; do
+    grep -qxF "$name" <<< "$installed_names" || { echo "not installed: $name" >&2; missing=1; }
+  done < <(read_list "$list" | sed -E 's/^--[a-z]+[[:space:]]+//' | awk '{ print $1 }' | sed 's|.*/||')
+  return "$missing"
+}
+
+# install_each <list in packages/> <command...>: run the command once for each entry of the list, with the words of
+# the entry after it (an entry can carry options, such as `code --classic`). Carries on past an entry that fails, and
+# fails at the end, naming them.
+install_each() {
+  local list="$1" entry words missing=()
+  shift
+  while read -r entry; do
+    read -r -a words <<< "$entry"
+    # From /dev/null, so the command cannot read the rest of the list
+    "$@" "${words[@]}" < /dev/null || missing+=("$entry")
+  done < <(read_list "$list")
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo "Could not install: ${missing[*]}" >&2
+    return 1
+  fi
+}
+
+# download_verified <URL> <SHA-256> <file>: download a file and check it against its SHA-256; a file that does not
+# match is removed
+download_verified() {
+  curl -fL --retry 2 "$1" -o "$3" || return 1
+  echo "$2  $3" | sha256sum --check --quiet || { rm -f "$3"; return 1; }
+}
+
+# install_deb <URL> <SHA-256>: download a .deb, check it against its SHA-256 and install it with its dependencies
+install_deb() {
+  local dir status=0
+  dir="$(mktemp -d)"
+  # apt runs as _apt and must be able to read the download
+  chmod 755 "$dir"
+  if download_verified "$1" "$2" "$dir/package.deb"; then
+    chmod 644 "$dir/package.deb"
+    apt_get install -y "$dir/package.deb" || status=$?
+  else
+    status=1
+  fi
+  rm -rf "$dir"
+  return "$status"
+}
+
+# curl retries a rate limit (HTTP 429), a server error and a connection that fails before the server answers, waiting
+# longer each time (1, 2, 4... seconds, or as long as the server asks). The Snap Store has both rate-limited the source
+# checks and closed the TLS handshake when many of them run in a row. A server that stops answering fails the check
+# instead of holding up the others.
+CURL_RETRY=(--retry 5 --retry-all-errors --retry-max-time 120 --max-time 60)
+
+# url_found <curl arguments...>: succeed when the server answers with a 2xx status. Not with --fail, which would make
+# --retry-all-errors retry a 404 too, though that answer means the source is gone.
+url_found() {
+  local status
+  status="$(curl -sSL "${CURL_RETRY[@]}" -o /dev/null -w '%{http_code}' "$@")" || return
+  if [[ "$status" != 2?? ]]; then
+    echo "The server answered with HTTP $status" >&2
+    return 1
+  fi
+}
+
+# url_exists <URL>: url_found, fetching only the first byte, so large files are not downloaded
+url_exists() { url_found --range 0-0 "$1"; }
+
+# Each tool the installer sets up besides the packages in packages/ (Docker Desktop, Node, IDplug...) is one script
+# in scripts/components/, which does everything for it. It defines a function for each action it has something to do
+# for, and leaves out the others:
+#   on_install  set it up (packages.sh)
+#   on_update   update it (update.sh)
+#   on_sources  check, with `check`, that what it downloads can still be found (check-sources.sh)
+#   on_doctor   check, with `check`, that this machine is still set up the way on_install left it (doctor.sh)
+#   on_tracked  print the packages it installs as <manager>:<name>, so drift.sh does not report them
+# They run in this order, which is also the order they are installed in, so each comes after the ones it needs.
+COMPONENTS_DIR="$ROOT_DIR/scripts/components"
+COMPONENTS=(
+  rust node docker-desktop docker-credentials kubernetes homebrew jetbrains-toolbox clamav udev github-debs idplug
+  firmware pipx
+)
+
+# run_components <action>: run that action of every component that has one. install and update run as steps; sources
+# and doctor add the component's failed checks to failed_checks.
+run_components() {
+  local action="$1" name file title status
+  for name in "${COMPONENTS[@]}"; do
+    file="$COMPONENTS_DIR/$name.sh"
+    grep -q "^on_$action() {" "$file" || continue
+    # The title the component gives itself in its TITLE=
+    title="$(sed -n 's/^TITLE="\(.*\)"$/\1/p' "$file")"
+    case "$action" in
+      install | update) step "$title" bash "$file" "$action" ;;
+      sources | doctor)
+        echo "== $title"
+        status=0
+        bash "$file" "$action" || status=$?
+        failed_checks=$((failed_checks + status))
+        ;;
+      *) bash "$file" "$action" ;;
+    esac
+  done
+}
+
+# component_main <action>: what every component script ends with: run its on_<action> function. sources and doctor
+# exit with the number of checks that failed.
+component_main() {
+  case "${1:-}" in
+    install | update | sources | doctor | tracked) ;;
+    *) echo "Usage: $(basename "$0") install|update|sources|doctor|tracked" >&2; exit 1 ;;
+  esac
+  declare -F "on_$1" > /dev/null || exit 0
+  "on_$1"
+  case "$1" in sources | doctor) exit "$failed_checks" ;; esac
 }

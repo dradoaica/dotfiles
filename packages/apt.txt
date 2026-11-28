@@ -21,7 +21,7 @@ git
 gnupg2
 jq
 libfuse2t64
-libnss3-tools  # modutil, for scripts/idplug.sh
+libnss3-tools  # modutil, for scripts/components/idplug.sh
 net-tools
 pass
 pipx
@@ -48,8 +48,8 @@ python3-pip-whl
 python3-venv
 ruby-full
 
-# The Docker CLI, which Docker Desktop needs (Docker Desktop comes from scripts/docker-desktop.sh, with its own engine,
-# Compose and Buildx)
+# The Docker CLI, which Docker Desktop needs. Docker Desktop, with its own engine, Compose and Buildx, comes from
+# scripts/components/docker-desktop.sh
 docker-ce-cli
 
 # Applications

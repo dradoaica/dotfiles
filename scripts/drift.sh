@@ -14,13 +14,10 @@ source "$SCRIPT_DIR/lib.sh"
 tracked() {
   read_list apt.txt | sed 's/^/apt:/'
   printf 'apt:%s\n' "${PREREQUISITES[@]}"
-  # The packages github-debs.sh installs, Docker Desktop and IDplug Classic
-  read_list github-debs.txt | awk '{ print "apt:" $2 }'
-  echo "apt:docker-desktop"
-  echo "apt:idplugclassic"
   read_list snap.txt | awk '{ print "snap:" $1 }'
   read_list flatpak.txt | sed 's/^/flatpak:/'
-  read_list brew.txt | sed -E 's/^--cask[[:space:]]+//; s/^/brew:/'
+  # What the tools in scripts/components/ install, such as Docker Desktop and the formulae in brew.txt
+  run_components tracked
 }
 
 # Print the packages read from stdin that Ubuntu's own archive provides

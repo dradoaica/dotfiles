@@ -8,8 +8,6 @@ apt:(linux|grub|shim|efibootmgr).*
 apt:(nvidia|libnvidia).*
 apt:ubuntu-.*
 
-# Pulled in or set up by the installer itself
-apt:docker-desktop
 # The Craft apps, which ArtCraft Launcher installs and updates itself
 apt:(deckcraft|gridcraft|pdfcraft|photocraft|wordcraft)
 

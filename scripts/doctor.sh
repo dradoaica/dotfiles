@@ -1,6 +1,6 @@
 #!/bin/bash
-# Check that this machine is still set up the way the installer left it, without changing anything.
-# Exits with an error if any check fails.
+# Check that this machine is still set up the way the installer left it, without changing anything: the checks below,
+# then each tool's own in scripts/components/ (their on_doctor). Exits with an error if any check fails.
 
 # No `set -e`: a check that fails must not stop the checks after it
 set -uo pipefail
@@ -9,49 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-# Lets Homebrew's commands (gitleaks, brew itself) be found below
+# Lets Homebrew's commands (gitleaks) be found below
 load_homebrew || true
 
-installed() { dpkg-query -W -f='${Status}' "$1" 2> /dev/null | grep -q 'install ok installed'; }
-not_installed() { ! installed "$1"; }
-user_service_disabled() { [ "$(systemctl --user is-enabled "$1" 2> /dev/null)" != enabled ]; }
-service_disabled() { [ "$(systemctl is-enabled "$1" 2> /dev/null)" != enabled ]; }
-service_running() { systemctl is-active --quiet "$1"; }
-docker_context_is_desktop() { [ "$(docker context show 2> /dev/null)" = desktop-linux ]; }
-# The agent marks each secret key P when a passphrase protects it, and C when it does not
-docker_key_has_passphrase() {
-  local keygrips keygrip
-  keygrips="$(gpg --list-secret-keys --with-colons --with-keygrip "Docker Desktop" 2> /dev/null \
-    | awk -F: '$1 == "grp" { print $10 }')"
-  [ -n "$keygrips" ] || { echo "there is no secret key named Docker Desktop" >&2; return 1; }
-  for keygrip in $keygrips; do
-    gpg-connect-agent "keyinfo $keygrip" /bye \
-      | awk '$2 == "KEYINFO" { found = 1; protected = ($8 == "P") } END { exit !(found && protected) }' \
-      || { echo "add a passphrase with: gpg --passwd 'Docker Desktop'" >&2; return 1; }
-  done
-}
-# Once the key, or the subkey pass encrypts with, expires, pass cannot store credentials and `docker login` fails.
-# packages.sh makes keys that never expire; GnuPG's default, which earlier versions used, is 3 years.
-docker_key_never_expires() {
-  local keys fingerprint expiry
-  keys="$(gpg --list-keys --with-colons "Docker Desktop" 2> /dev/null)"
-  [ -n "$keys" ] || { echo "there is no key named Docker Desktop" >&2; return 1; }
-  fingerprint="$(awk -F: '$1 == "fpr" { print $10; exit }' <<< "$keys")"
-  expiry="$(awk -F: '($1 == "pub" || $1 == "sub") && $7 != "" { print $7 }' <<< "$keys" | sort -n | head -1)"
-  if [ -n "$expiry" ]; then
-    echo "it expires on $(date -d "@$expiry" +%F); remove the expiry with:" \
-      "gpg --quick-set-expire $fingerprint never && gpg --quick-set-expire $fingerprint never '*'" >&2
-    return 1
-  fi
-}
-docker_desktop_settings() {
-  jq -e '.OpenUIOnStartupDisabled == true and .AutoStart == false' "$HOME/.docker/desktop/settings-store.json"
-}
-microk8s_not_started_at_boot() {
-  local services
-  services="$(snap services microk8s)" || return 1
-  ! awk 'NR > 1 { print $2 }' <<< "$services" | grep -qx enabled
-}
 secrets_hook_enabled() {
   [ "$(git -C "$ROOT_DIR" config --get core.hooksPath)" = .githooks ] \
     || { echo "enable it with: git -C $ROOT_DIR config core.hooksPath .githooks" >&2; return 1; }
@@ -64,65 +24,14 @@ commits_signed() {
     return 1
   fi
 }
-kubeconfig_private() { [ ! -e "$HOME/.kube/config" ] || [ "$(stat -c '%a' "$HOME/.kube/config")" = 600 ]; }
-# Reads the registration without loading the module, so it does not depend on the card being in the reader
-chrome_has_idplug() {
-  local modules
-  modules="$(modutil -dbdir "sql:$HOME/.pki/nssdb" -rawlist)" || return 1
-  grep -qF 'library="/usr/lib/idplugclassic/libidplug-pkcs11.so" name="IDEMIA IDPlug"' <<< "$modules"
-}
-firefox_has_idplug() {
-  local library="$HOME/snap/firefox/common/pkcs11/libidplug-pkcs11.so"
-  ! snap list firefox > /dev/null 2>&1 && return
-  cmp /usr/lib/idplugclassic/libidplug-pkcs11.so "$library" || return 1
-  jq -e --arg path "$library" '.policies.SecurityDevices.Add["IDEMIA IDPlug"] == $path' \
-    /etc/firefox/policies/policies.json || return 1
-  snap connections firefox | awk '$2 == "firefox:pcscd" && $3 != "-" { found = 1 } END { exit !found }' \
-    || { echo "firefox:pcscd is not connected" >&2; return 1; }
-}
-wsf_enabled() { wsf status | grep -q '^enabled: yes'; }
-udev_rules_installed() {
-  local rule
-  for rule in "$ROOT_DIR"/system/udev/*.rules; do
-    cmp -s "$rule" "/etc/udev/rules.d/${rule##*/}" || return 1
-  done
-}
 # The preferences that keep each PPA to the packages listed for it in packages/ppas.txt
 ppas_pinned() {
   ppa_preferences | cmp -s - /etc/apt/preferences.d/dotfiles-ppas \
     || { echo "write them with: make packages" >&2; return 1; }
 }
-# all_installed <list in packages/> <command printing what is installed>: every entry of the list must be among
-# them. The first word of an entry is its name, without the options before it or the tap it comes from.
-all_installed() {
-  local list="$1" installed_names name missing=0
-  shift
-  installed_names="$("$@")" || return 1
-  while read -r name; do
-    grep -qxF "$name" <<< "$installed_names" || { echo "not installed: $name" >&2; missing=1; }
-  done < <(read_list "$list" | sed -E 's/^--[a-z]+[[:space:]]+//' | awk '{ print $1 }' | sed 's|.*/||')
-  return "$missing"
-}
 apt_installed() { dpkg-query -W -f='${db:Status-Status} ${Package}\n' | awk '$1 == "installed" { print $2 }'; }
 snaps_installed() { snap list | awk 'NR > 1 { print $1 }'; }
 flatpaks_installed() { flatpak list --app --columns=application; }
-brews_installed() { brew list -1 --formula && brew list -1 --cask; }
-clamav_daemon_disabled() { service_disabled clamav-daemon.socket && service_disabled clamav-daemon.service; }
-# Rules in /etc/udev/rules.d/ that neither this repository, a package nor snapd installed, which a fresh install
-# would not have
-no_unmanaged_udev_rules() {
-  local rule unmanaged=0
-  for rule in /etc/udev/rules.d/*.rules; do
-    [ -e "$rule" ] || continue
-    case "${rule##*/}" in 70-snap.*) continue ;; esac
-    if [ -e "$ROOT_DIR/system/udev/${rule##*/}" ] || dpkg -S "$rule" > /dev/null 2>&1; then
-      continue
-    fi
-    echo "not managed: $rule" >&2
-    unmanaged=1
-  done
-  return "$unmanaged"
-}
 extensions_enabled() {
   local enabled uuid
   enabled="$(gnome-extensions list --enabled)"
@@ -134,21 +43,7 @@ extensions_enabled() {
 echo "== Dotfiles"
 check "every dotfile is linked" bash "$SCRIPT_DIR/link.sh" --check
 
-echo "== Docker"
-check "docker uses Docker Desktop (desktop-linux context)" docker_context_is_desktop
-check "Docker Desktop does not start at login" user_service_disabled docker-desktop
-check "Docker Desktop starts in the tray, without the Dashboard, and not at login" docker_desktop_settings
-check "the GPG key Docker Desktop stores credentials with has a passphrase" docker_key_has_passphrase
-check "the GPG key Docker Desktop stores credentials with never expires" docker_key_never_expires
-
-echo "== Kubernetes"
-check "MicroK8s does not start at boot" microk8s_not_started_at_boot
-# shellcheck disable=SC2088 # the ~ is part of the message
-check "~/.kube/config is readable only by you" kubeconfig_private
-
 echo "== Security"
-check "ClamAV virus definitions are kept up to date (clamav-freshclam)" service_running clamav-freshclam
-check "the ClamAV daemon does not run in the background" clamav_daemon_disabled
 check "GitHub CLI is logged in" gh auth status
 check "Git signs commits and tags with an SSH key" commits_signed
 check "commits to this repository are checked for secrets first (gitleaks pre-commit hook)" secrets_hook_enabled
@@ -157,23 +52,10 @@ echo "== Packages"
 check "every package in packages/apt.txt is installed" all_installed apt.txt apt_installed
 check "every snap in packages/snap.txt is installed" all_installed snap.txt snaps_installed
 check "every app in packages/flatpak.txt is installed" all_installed flatpak.txt flatpaks_installed
-check "every formula and cask in packages/brew.txt is installed" all_installed brew.txt brews_installed
 check "the PPAs can only replace the packages listed for them in packages/ppas.txt" ppas_pinned
+check "LibreOffice is not installed (the Craft apps replace it)" deb_not_installed libreoffice-common
 
-echo "== Hardware"
-check "the udev rules in system/udev/ are installed" udev_rules_installed
-check "every udev rule in /etc/udev/rules.d/ comes from system/udev/, a package or snapd" no_unmanaged_udev_rules
-
-echo "== Apps"
-while read -r repo package _; do
-  check "$package from $repo is installed" installed "$package"
-done < <(read_list github-debs.txt)
-check "Solaar is not installed (OpenLogi does not work with it)" not_installed solaar
-check "LibreOffice is not installed (the Craft apps replace it)" not_installed libreoffice-common
-check "Wayland Scroll Factor is enabled" wsf_enabled
-check "IDplug Classic is installed" installed idplugclassic
-check "Chrome can use the electronic ID card (IDEMIA IDPlug module)" chrome_has_idplug
-check "Firefox can use the electronic ID card (module, policy and pcscd connection)" firefox_has_idplug
+run_components doctor
 
 echo "== GNOME"
 check "every extension in gnome/extensions.txt is enabled" extensions_enabled

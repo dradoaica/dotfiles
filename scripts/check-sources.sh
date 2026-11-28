@@ -1,8 +1,7 @@
 #!/bin/bash
-# Check that every outside source the installer downloads from still works for this Ubuntu release:
-# the PPAs and APT repositories, the Docker Desktop, JetBrains Toolbox, IDplug Classic, nvm and Flathub
-# downloads, the GitHub releases in github-debs.sh, and that those sources still offer every package
-# in packages/. Installs nothing, and needs no root. CI runs it every week.
+# Check that every outside source the installer downloads from still works for this Ubuntu release: the PPAs, APT
+# repositories and Flathub, that they still offer every package in packages/, and what each tool in
+# scripts/components/ downloads (their on_sources). Installs nothing, and needs no root. CI runs it every week.
 
 # No `set -e`: a source that fails must not stop the checks after it
 set -uo pipefail
@@ -11,26 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 source /etc/os-release
-
-# curl retries a rate limit (HTTP 429), a server error and a connection that fails before the server answers, waiting
-# longer each time (1, 2, 4... seconds, or as long as the server asks). The Snap Store has both rate-limited the checks
-# and closed the TLS handshake when many of them run in a row. A server that stops answering fails the check instead
-# of holding up the others.
-CURL_RETRY=(--retry 5 --retry-all-errors --retry-max-time 120 --max-time 60)
-
-# url_found <curl arguments...>: succeed when the server answers with a 2xx status. Not with --fail, which would make
-# --retry-all-errors retry a 404 too, though that answer means the source is gone.
-url_found() {
-  local status
-  status="$(curl -sSL "${CURL_RETRY[@]}" -o /dev/null -w '%{http_code}' "$@")" || return
-  if [[ "$status" != 2?? ]]; then
-    echo "The server answered with HTTP $status" >&2
-    return 1
-  fi
-}
-
-# Fetch only the first byte, so large files are not downloaded
-url_exists() { url_found --range 0-0 "$1"; }
 
 apt_index="$(mktemp)"
 trap 'rm -f "$apt_index"' EXIT
@@ -51,23 +30,6 @@ in_apt_index() { grep -qxF "$1" "$apt_index"; }
 snap_exists() { url_found -H 'Snap-Device-Series: 16' "https://api.snapcraft.io/v2/snaps/info/$1"; }
 flatpak_exists() { url_found "https://flathub.org/api/v2/appstream/$1"; }
 
-# brew_exists <line of brew.txt>: a cask, a formula from a tap (owner/tap/name) or a core formula
-brew_exists() {
-  case "$1" in
-    "--cask "*) url_found "https://formulae.brew.sh/api/cask/${1#--cask }.json" ;;
-    */*/*)
-      local owner="${1%%/*}" name="${1##*/}" tap="${1#*/}"
-      url_found "https://raw.githubusercontent.com/$owner/homebrew-${tap%%/*}/HEAD/Formula/$name.rb"
-      ;;
-    *) url_found "https://formulae.brew.sh/api/formula/$1.json" ;;
-  esac
-}
-
-# The release packages.sh would install: the newest that is at least RELEASE_MIN_AGE_DAYS old
-jetbrains_toolbox_has_download() {
-  jetbrains_toolbox_download | jq -e '(.link | strings) and (.checksumLink | strings)'
-}
-
 echo "== PPAs for Ubuntu $VERSION_ID ($VERSION_CODENAME)"
 # The lists packages.sh adds the sources from
 mapfile -t ppas < <(read_list ppas.txt | awk '{ print $1 }' | sed 's/^ppa://')
@@ -78,33 +40,14 @@ for ppa in "${ppas[@]}"; do
   check "ppa:$ppa" url_exists "https://ppa.launchpadcontent.net/$owner/$name/ubuntu/dists/$VERSION_CODENAME/Release"
 done
 
-echo "== APT repositories"
+echo "== APT repositories and Flathub"
 for repository in "${repositories[@]}"; do
   read -r name key_url _ uri suite _ <<< "$repository"
   check "$name ($suite)" url_exists "${uri%/}/dists/$suite/Release"
   check "$name signing key" url_exists "$key_url"
 done
 
-echo "== Downloads"
-check "Docker Desktop latest build and its checksum" bash "$SCRIPT_DIR/docker-desktop.sh" --check
-check "JetBrains Toolbox download link and checksum" jetbrains_toolbox_has_download
-check "IDplug Classic download matches its pinned checksum and installs on this release" bash "$SCRIPT_DIR/idplug.sh" --check
-nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name // empty')"
-check "nvm installer (release: ${nvm_tag:-not found})" \
-  url_exists "https://raw.githubusercontent.com/nvm-sh/nvm/${nvm_tag:-missing}/install.sh"
 check "Flathub repository" url_exists https://flathub.org/repo/flathub.flatpakrepo
-# The commit packages.sh would install Homebrew from
-homebrew_commit="$(github_commit Homebrew/install install.sh)"
-check "Homebrew installer (commit: ${homebrew_commit:-not found})" \
-  url_exists "https://raw.githubusercontent.com/Homebrew/install/${homebrew_commit:-missing}/install.sh"
-
-echo "== GitHub releases"
-if bash "$SCRIPT_DIR/github-debs.sh" --check; then
-  echo "ok    every release in github-debs.sh has a matching .deb"
-else
-  echo "FAIL  a release in github-debs.sh has no matching .deb"
-  failed_checks=$((failed_checks + 1))
-fi
 
 echo "== Package indexes"
 for component in main restricted universe multiverse; do
@@ -145,11 +88,7 @@ for app in "${flatpaks[@]}"; do
   check "$app" flatpak_exists "$app"
 done
 
-echo "== Homebrew"
-mapfile -t brews < <(read_list brew.txt)
-for brew in "${brews[@]}"; do
-  check "$brew" brew_exists "$brew"
-done
+run_components sources
 
 if [ "$failed_checks" -gt 0 ]; then
   echo "$failed_checks check(s) failed" >&2

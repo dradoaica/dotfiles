@@ -1,6 +1,6 @@
 #!/bin/bash
-# Add the APT, Snap and Flatpak sources, then install the packages listed in packages/ and set up the
-# toolchains and applications. Every step runs even if an earlier one failed; the failed steps are
+# Add the APT, Snap and Flatpak sources, install the packages listed in packages/, then set up each tool in
+# scripts/components/ (see COMPONENTS in lib.sh). Every step runs even if an earlier one failed; the failed steps are
 # listed at the end, so one broken source does not stop the rest of a fresh install.
 # Usage: packages.sh [--simulate]
 #   --simulate  only add the APT sources and check that apt can install every package in packages/apt.txt
@@ -30,12 +30,10 @@ prerequisites() {
 }
 
 # write_sources <name> <URI> <suite> <components> <keyring file>: write /etc/apt/sources.list.d/<name>.sources in
-# the deb822 format, so apt trusts that key for this repository only, and remove the one-line <name>.list that
-# earlier versions of this script wrote
+# the deb822 format, so apt trusts that key for this repository only
 write_sources() {
   local name="$1" uri="$2" suite="$3" components="$4" keyring="$5"
-  sudo rm -f "/etc/apt/sources.list.d/$name.list"
-  sudo tee "/etc/apt/sources.list.d/$name.sources" > /dev/null <<EOF
+  sudo tee "/etc/apt/sources.list.d/$name.sources" > /dev/null << EOF
 Types: deb
 URIs: $uri
 Suites: $suite
@@ -81,17 +79,6 @@ apt_sources() {
     save_signing_key "$key_url" "$keyring"
     write_sources "$name" "$uri" "$suite" "$components" "$keyring"
   done
-
-  # Sources that machines set up by an earlier version of this script have, but that are no longer used.
-  # OpenLogi replaces Solaar for Logitech devices:
-  if compgen -G "/etc/apt/sources.list.d/solaar-unifying-*" > /dev/null; then
-    sudo add-apt-repository -y --remove ppa:solaar-unifying/stable
-  fi
-  # .NET comes from Ubuntu's archive, and nothing else needs Microsoft's repository (purging
-  # packages-microsoft-prod removes its sources entry and key):
-  if dpkg -s packages-microsoft-prod > /dev/null 2>&1; then
-    apt_get purge -y packages-microsoft-prod
-  fi
 }
 
 sources() {
@@ -106,24 +93,16 @@ upgrade() {
 }
 
 apt_packages() {
-  local packages package missing=()
   # The Craft apps replace LibreOffice, which comes with Ubuntu. Purging these two removes every LibreOffice package,
   # since they all depend on them; `apt-get autoremove` (scripts/cleanup.sh) then removes the libraries they pulled in.
-  if dpkg -s libreoffice-common > /dev/null 2>&1; then
+  if deb_installed libreoffice-common; then
     apt_get purge -y libreoffice-common libreoffice-core
   fi
+  local packages
   mapfile -t packages < <(read_list apt.txt)
-  # One apt-get call is much faster, but fails as a whole if a single package cannot be installed. Then
-  # install them one by one, so the rest still get installed, and report the ones that could not be.
-  if ! apt_get install -y "${packages[@]}"; then
-    for package in "${packages[@]}"; do
-      apt_get install -y "$package" || missing+=("$package")
-    done
-  fi
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "Could not install: ${missing[*]}" >&2
-    return 1
-  fi
+  # One apt-get call is much faster, but fails as a whole if a single package cannot be installed. Then install them
+  # one by one, so the rest still get installed, and report the ones that could not be.
+  apt_get install -y "${packages[@]}" || install_each apt.txt apt_get install -y
 }
 
 # Check that apt can install every package in apt.txt together from the sources above, without installing them: a
@@ -140,210 +119,8 @@ simulate_apt_packages() {
   echo "apt can install the ${#packages[@]} packages in apt.txt together"
 }
 
-snap_packages() {
-  local line args missing=()
-  while read -r line; do
-    IFS=' ' read -r -a args <<< "$line"
-    sudo snap install "${args[@]}" || missing+=("${args[0]}")
-  done < <(read_list snap.txt)
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "Could not install: ${missing[*]}" >&2
-    return 1
-  fi
-}
-
-flatpak_packages() {
-  local app missing=()
-  while read -r app; do
-    sudo flatpak install -y flathub "$app" || missing+=("$app")
-  done < <(read_list flatpak.txt)
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "Could not install: ${missing[*]}" >&2
-    return 1
-  fi
-}
-
-rust() {
-  rustup install stable
-}
-
-node_js() {
-  # The newest nvm release that is at least RELEASE_MIN_AGE_DAYS old; PROFILE=/dev/null stops the installer editing
-  # ~/.bashrc, since home/bash/.bashrc.d/nvm.sh loads nvm instead. On a machine that has nvm, this updates it.
-  local nvm_tag
-  nvm_tag="$(github_release nvm-sh/nvm | jq -r '.tag_name')"
-  [ -n "$nvm_tag" ] || { echo "Found no nvm release to install" >&2; return 1; }
-  curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$nvm_tag/install.sh" | PROFILE=/dev/null bash
-  export NVM_DIR="$HOME/.nvm"
-  # nvm is not written for `set -u`
-  set +u
-  . "$NVM_DIR/nvm.sh"
-  # Track the latest Node 24 and make it the default for new shells
-  nvm install 24
-  nvm alias default 24
-}
-
-docker_setup() {
-  bash "$SCRIPT_DIR/docker-desktop.sh"
-  # Send docker commands to Docker Desktop rather than to Docker Engine's root-owned socket
-  if ! docker context inspect desktop-linux > /dev/null 2>&1; then
-    docker context create desktop-linux --description "Docker Desktop" \
-      --docker "host=unix://$HOME/.docker/desktop/docker.sock"
-  fi
-  docker context use desktop-linux
-  # Do not start Docker Desktop at login: disable its systemd unit and its own "start when you sign in" setting,
-  # which would enable the unit again. When it is started, it opens in the tray without the Dashboard
-  systemctl --user disable docker-desktop
-  local docker_settings="$HOME/.docker/desktop/settings-store.json"
-  mkdir -p "$(dirname "$docker_settings")"
-  [ -s "$docker_settings" ] || echo '{}' > "$docker_settings"
-  jq '.AutoStart = false | .OpenUIOnStartupDisabled = true' "$docker_settings" > "$docker_settings.new"
-  mv "$docker_settings.new" "$docker_settings"
-}
-
-# gpg_key_id <name>: print the ID of the GPG key with that name, if there is one
-gpg_key_id() {
-  gpg --list-keys --with-colons "$1" 2> /dev/null | awk -F: '/^pub/ { print $5; exit }' || true
-}
-
-docker_credentials() {
-  # Docker Desktop stores registry credentials with pass, which needs a GPG key
-  if [ -d "$HOME/.password-store" ]; then
-    echo "pass is already set up"
-    return
-  fi
-  local key_id
-  key_id="$(gpg_key_id "Docker Desktop")"
-  if [ -z "$key_id" ]; then
-    # GnuPG asks for the key's passphrase in a dialog. When Docker Desktop first needs it, the dialog can save it in
-    # the login keyring, which unlocks it from then on when you log in. The key never expires: GnuPG's default of 3
-    # years would leave pass unable to store credentials, and `docker login` failing, from one day to the next.
-    gpg --batch --quick-gen-key "Docker Desktop" default default never
-    key_id="$(gpg_key_id "Docker Desktop")"
-  fi
-  pass init "$key_id"
-}
-
-kubernetes() {
-  sudo usermod -a -G microk8s "$USER"
-  mkdir -p ~/.kube
-  sudo chown -R "$USER" ~/.kube
-  # Group membership applies after the next login, so use sudo here instead of newgrp
-  sudo microk8s start
-  sudo microk8s status --wait-ready
-  # Merge the MicroK8s cluster into ~/.kube/config, keeping any other clusters and the current context
-  local microk8s_config current_context
-  microk8s_config="$(mktemp ~/.kube/microk8s.XXXXXX)"
-  # The redirect runs as the user on purpose, so the file is owned by the user
-  # shellcheck disable=SC2024
-  sudo microk8s config > "$microk8s_config"
-  if [ -s ~/.kube/config ]; then
-    current_context="$(kubectl config current-context 2> /dev/null || true)"
-    # For entries in both files the first file wins, so fresh MicroK8s credentials replace stale ones
-    KUBECONFIG="$microk8s_config:$HOME/.kube/config" kubectl config view --flatten > "$microk8s_config.merged"
-    mv "$microk8s_config.merged" ~/.kube/config
-    if [ -n "$current_context" ]; then
-      kubectl config use-context "$current_context" > /dev/null
-    fi
-  else
-    cp "$microk8s_config" ~/.kube/config
-  fi
-  rm -f "$microk8s_config"
-  # It holds cluster credentials
-  chmod 600 ~/.kube/config
-  # Don't keep Kubernetes running in the background: `microk8s stop` also stops it starting at boot.
-  # Run `microk8s start` when you need it.
-  sudo microk8s stop
-}
-
-homebrew() {
-  # Installed only once: `brew update` (scripts/update.sh) updates it. The installer runs with the sudo this script
-  # has already unlocked, so take it from the newest commit that is at least RELEASE_MIN_AGE_DAYS old, not the branch.
-  if ! load_homebrew; then
-    local commit
-    commit="$(github_commit Homebrew/install install.sh)"
-    [ -n "$commit" ] || { echo "Found no commit of the Homebrew installer to install from" >&2; return 1; }
-    NONINTERACTIVE=1 /bin/bash -c \
-      "$(curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/$commit/install.sh")"
-    load_homebrew
-  fi
-  local line args missing=()
-  while read -r line; do
-    IFS=' ' read -r -a args <<< "$line"
-    brew install "${args[@]}" || missing+=("$line")
-  done < <(read_list brew.txt)
-  if [ "${#missing[@]}" -gt 0 ]; then
-    echo "Could not install: ${missing[*]}" >&2
-    return 1
-  fi
-}
-
-jetbrains_toolbox() {
-  # Installed only once: it updates itself
-  if [ -x /opt/jetbrains-toolbox/bin/jetbrains-toolbox ]; then
-    echo "JetBrains Toolbox is already installed"
-    return
-  fi
-  local download url checksum archive
-  download="$(jetbrains_toolbox_download)"
-  if [ -z "$download" ]; then
-    echo "Found no JetBrains Toolbox release that is at least $RELEASE_MIN_AGE_DAYS days old" >&2
-    return 1
-  fi
-  url="$(jq -r '.link' <<< "$download")"
-  # JetBrains publishes a SHA-256 file ("<hash> *<file name>") next to each download
-  checksum="$(curl -fsSL "$(jq -r '.checksumLink' <<< "$download")" | awk '{ print $1 }')"
-  archive="$(mktemp --suffix=.tar.gz)"
-  # The step runs in a subshell, so this trap fires when the step ends, even if a command below fails.
-  # Expanded now: $archive is local, and gone by the time the trap runs.
-  # shellcheck disable=SC2064
-  trap "rm -f '$archive'" EXIT
-  sudo mkdir -p /opt/jetbrains-toolbox
-  curl -fL "$url" -o "$archive"
-  echo "$checksum  $archive" | sha256sum --check --quiet
-  sudo tar -xzf "$archive" -C /opt/jetbrains-toolbox --strip-components=1
-  sudo chmod +x /opt/jetbrains-toolbox/bin/jetbrains-toolbox
-  # First launch registers the desktop entry and autostart
-  /opt/jetbrains-toolbox/bin/jetbrains-toolbox &
-  sleep 5
-  pkill jetbrains-toolbox || true
-}
-
-services() {
-  # Keep the virus definitions up to date
-  sudo systemctl enable --now clamav-freshclam
-  # ClamTk scans on demand with clamscan, so do not keep the ClamAV daemon running: it holds about 1 GB of
-  # signatures in memory. Its socket would start it again on the first connection.
-  sudo systemctl disable --now clamav-daemon.socket clamav-daemon.service
-}
-
-# System files that cannot be symlinked from home/
-udev_rules() {
-  sudo install -m 0644 -t /etc/udev/rules.d "$ROOT_DIR"/system/udev/*.rules
-  sudo udevadm control --reload-rules
-  sudo udevadm trigger --subsystem-match=hidraw
-}
-
-github_releases() {
-  # OpenLogi replaces Solaar, and does not work while Solaar is installed: both drive the same Logitech devices
-  if dpkg -s solaar > /dev/null 2>&1; then
-    apt_get purge -y solaar
-  fi
-  # The apps in packages/github-debs.txt
-  bash "$SCRIPT_DIR/github-debs.sh"
-  # Slow down touchpad scrolling on Wayland; takes effect after the next login
-  wsf set --scroll-vertical 0.30 --scroll-horizontal 0.30 --pinch-zoom 1.00 --pinch-rotate 1.00
-  wsf enable
-}
-
-# IDplug Classic, for the Romanian electronic ID card, and its module in Chrome
-electronic_id() {
-  bash "$SCRIPT_DIR/idplug.sh"
-}
-
-cleanup() {
-  bash "$SCRIPT_DIR/cleanup.sh"
-}
+snap_packages() { install_each snap.txt sudo snap install; }
+flatpak_packages() { install_each flatpak.txt sudo flatpak install -y flathub; }
 
 if [ "$simulate" = true ]; then
   step Prerequisites prerequisites
@@ -354,22 +131,13 @@ if [ "$simulate" = true ]; then
 fi
 
 step Prerequisites prerequisites
+step Migrations bash "$SCRIPT_DIR/migrations.sh"
 step Sources sources
 step Upgrade upgrade
 step "APT packages" apt_packages
 step Snaps snap_packages
 step Flatpak flatpak_packages
-step Rust rust
-step Node node_js
-step Docker docker_setup
-step "Docker credentials" docker_credentials
-step Kubernetes kubernetes
-step Homebrew homebrew
-step "JetBrains Toolbox" jetbrains_toolbox
-step Services services
-step "udev rules" udev_rules
-step "GitHub releases" github_releases
-step "Electronic ID" electronic_id
-step Cleanup cleanup
+run_components install
+step Cleanup bash "$SCRIPT_DIR/cleanup.sh"
 
 finish "Done."

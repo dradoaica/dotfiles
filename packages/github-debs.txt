@@ -1,4 +1,4 @@
-# Apps published as .deb files on GitHub releases, installed and updated by scripts/github-debs.sh.
+# Apps published as .deb files on GitHub releases, installed and updated by scripts/components/github-debs.sh.
 # <owner/repo> <package> <regex matching the release asset>
 
 AprilNEA/OpenLogi openlogi ^openlogi-v.*-linux-amd64\.deb$

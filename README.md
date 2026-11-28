@@ -25,9 +25,9 @@ aware that it:
   can fix them and run it again. The whole output is also saved in `~/.local/state/dotfiles/` (the 10 newest logs of
   each script are kept).
 - Installs balenaEtcher, OpenLogi, Wayland Scroll Factor and ArtCraft Launcher from the `.deb` files on their latest
-  GitHub releases ([`scripts/github-debs.sh`](scripts/github-debs.sh)), after checking each file against the SHA-256
+  GitHub releases ([`scripts/components/github-debs.sh`](scripts/components/github-debs.sh)), after checking each file against the SHA-256
   digest GitHub publishes for it; a file without one is not installed. Installs Docker Desktop the same way from
-  Docker's update feed ([`scripts/docker-desktop.sh`](scripts/docker-desktop.sh)), checking it against the
+  Docker's update feed ([`scripts/components/docker-desktop.sh`](scripts/components/docker-desktop.sh)), checking it against the
   `checksums.txt` Docker publishes for each build, and JetBrains Toolbox against the SHA-256 file JetBrains publishes
   next to each download. A checksum from the same server as the file does not help when that server or a maintainer's
   account is taken over, so each of these, nvm and the Homebrew installer are only installed once they are 7 days
@@ -35,7 +35,7 @@ aware that it:
   installs the newest). Docker's feed only offers its newest build: until that is 7 days old, an update keeps the
   installed build, and a fresh install stops with a message saying when to run it again.
 - Installs IDplug Classic, the middleware for the Romanian electronic identity card, from the `.deb` that
-  [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/idplug.sh`](scripts/idplug.sh)). MAI
+  [hub.mai.gov.ro](https://hub.mai.gov.ro/aplicatie-cei) offers ([`scripts/components/idplug.sh`](scripts/components/idplug.sh)). MAI
   publishes no checksum, so the script checks the file against the SHA-256 pinned in it, and fails when MAI replaces
   the file. It then registers the card's PKCS#11 module in Chrome's certificate database (`~/.pki/nssdb`) and, for
   the Firefox snap, copies the module to `~/snap/firefox/common/pkcs11/` (the only place the snap may load it from),
@@ -388,7 +388,7 @@ sudo flatpak repair
 ### The Browser Does Not See the Electronic ID Card
 
 IDplug Manager shows the card's certificates, but the browsers only see them through the module that
-`scripts/idplug.sh` adds for them; `make doctor` checks it for both. For Chrome, with the card in the reader, check
+`scripts/components/idplug.sh` adds for them; `make doctor` checks it for both. For Chrome, with the card in the reader, check
 that the module is in `~/.pki/nssdb` and lists the card's tokens:
 
 ```bash
@@ -399,7 +399,7 @@ In Firefox, open **Settings > Privacy & Security > Security Devices**: "IDEMIA I
 card's tokens under it. Because of the policy that adds it, Firefox shows "Your browser is being managed by your
 organization" in its settings.
 
-If either is missing, run `bash scripts/idplug.sh`. Then quit the browser completely and start it again.
+If either is missing, run `bash scripts/components/idplug.sh install`. Then quit the browser completely and start it again.
 
 When a site asks for a certificate, choose the one ending in "(Autentificare)", from the **PKI Application** token,
 and enter the card's 4-digit User PIN; the other two tokens are for signing. The card locks after a few wrong PINs.
